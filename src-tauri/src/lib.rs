@@ -37,6 +37,8 @@ mod denoising;
 mod effect_maps;
 mod exif_processing;
 mod export_processing;
+mod face_parsing;
+mod face_refine;
 mod file_management;
 mod focus_stacking;
 mod fog;
@@ -59,6 +61,7 @@ mod panorama_utils;
 mod preset_converter;
 mod raw_processing;
 mod relight;
+mod skin_retouch;
 mod tagging;
 mod tagging_utils;
 mod white_balance;
@@ -2389,6 +2392,8 @@ pub fn run() {
             inpainting::generate_manual_cleanup_patch,
             inpainting::generate_liquify_patch,
             inpainting::generate_retouch_patch,
+            face_refine::detect_faces_for_refine,
+            face_refine::generate_face_refine_patch,
             denoising::apply_denoising,
             denoising::batch_denoise_images,
             denoising::save_denoised_image,

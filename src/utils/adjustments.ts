@@ -361,6 +361,8 @@ export interface Adjustments {
 }
 
 export interface AiPatch {
+  /** Set on the per-face patches that the Facial Refine effect creates and manages. */
+  faceRefine?: boolean;
   id: string;
   isLoading: boolean;
   invert: boolean;
@@ -370,6 +372,14 @@ export interface AiPatch {
   subMasks: Array<SubMask>;
   visible: boolean;
 }
+
+/** Inserts a patch at `index` (or last) among the regular patches, keeping Facial Refine patches at the end. */
+export const insertAiPatch = (patches: Array<AiPatch>, patch: AiPatch, index?: number): Array<AiPatch> => {
+  const regular = patches.filter((p) => !p.faceRefine);
+  const target = Math.max(0, Math.min(index ?? regular.length, regular.length));
+  regular.splice(target, 0, patch);
+  return [...regular, ...patches.filter((p) => p.faceRefine)];
+};
 
 export interface Color {
   color: string;
@@ -1158,6 +1168,7 @@ export const ADJUSTMENT_SECTION_TOOLS: Record<string, Array<AdjustmentSectionToo
   effects: [
     { id: 'creative', label: 'adjustments.effects.creative' },
     { id: 'spatial', label: 'adjustments.effects.spatial' },
+    { id: 'facialRefine', label: 'adjustments.effects.facialRefine' },
     { id: 'lut', label: 'adjustments.effects.lut' },
     { id: 'vignette', label: 'adjustments.effects.vignette' },
     { id: 'grain', label: 'adjustments.effects.grain' },
