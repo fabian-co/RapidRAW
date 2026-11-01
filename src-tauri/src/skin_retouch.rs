@@ -940,7 +940,7 @@ mod tests {
         paint_disc(&mut rgb, 120, 120, 4, [150, 95, 80]);
 
         let mut mask = vec![255u8; SIZE * SIZE];
-        for row in mask.chunks_exact_mut(SIZE).take(20) {
+        for row in mask.as_chunks_mut::<SIZE>().0.iter_mut().take(20) {
             row.fill(0);
         }
 
@@ -1088,7 +1088,7 @@ mod tests {
         let skin = vec![255u8; SIZE * SIZE];
         let features = vec![0u8; SIZE * SIZE];
         let mut zone = vec![0u8; SIZE * SIZE];
-        for row in zone.chunks_exact_mut(SIZE) {
+        for row in zone.as_chunks_mut::<SIZE>().0 {
             row[..120].fill(255);
         }
         let hints = FaceHints {
