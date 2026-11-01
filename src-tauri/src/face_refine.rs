@@ -442,7 +442,7 @@ mod tests {
             assert_eq!(mask.len(), color.len() / 3);
 
             let mut result = image.clone();
-            for (i, px) in color.chunks_exact(3).enumerate() {
+            for (i, px) in color.as_chunks::<3>().0.iter().enumerate() {
                 let (cx, cy) = (crop.x + i as u32 % crop.w, crop.y + i as u32 / crop.w);
                 let alpha = mask[i] as f32 / 255.0;
                 let dst = result.get_pixel_mut(cx, cy);
