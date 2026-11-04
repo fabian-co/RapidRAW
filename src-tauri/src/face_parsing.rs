@@ -120,8 +120,9 @@ pub enum FaceRegion {
     Teeth,
     /// Everything on a head that is not skin. Used to protect features while retouching.
     Features,
-    /// Forehead and cheeks: the skin where spots are removed. The nose, the nasolabial
-    /// folds, the area around the mouth, the chin, the ears and the neck are left out.
+    /// Forehead, cheeks, the bridge and tip of the nose and the chin: the skin where spots
+    /// are removed. The nostrils and the wings of the nose, the nasolabial folds, the area
+    /// around the mouth, the ears and the neck are left out.
     BlemishZone,
 }
 
@@ -131,7 +132,7 @@ impl FaceRegion {
             Self::Skin => &[SKIN, NOSE, LEFT_EAR, RIGHT_EAR, NECK],
             Self::Eyes | Self::EyeWhites => &[LEFT_EYE, RIGHT_EYE],
             Self::Teeth => &[MOUTH],
-            Self::BlemishZone => &[SKIN],
+            Self::BlemishZone => &[SKIN, NOSE],
             Self::Features => &[
                 LEFT_BROW, RIGHT_BROW, LEFT_EYE, RIGHT_EYE, GLASSES, EARRING, MOUTH, UPPER_LIP,
                 LOWER_LIP, HAIR, HAT,
@@ -227,7 +228,8 @@ impl ParsedFace {
         [(a + 1.0) * half_size, (b + 1.0) * half_size]
     }
 
-    /// How much the crop position (`u`, `v`) belongs to the forehead or the cheeks.
+    /// How much the crop position (`u`, `v`) belongs to the forehead, the cheeks, the
+    /// bridge and tip of the nose or the chin.
     fn blemish_zone_weight(&self, u: f32, v: f32) -> f32 {
         let [right_eye, left_eye, nose, right_mouth, left_mouth] = self.landmarks;
         let eye_y = (right_eye[1] + left_eye[1]) * 0.5;
@@ -256,8 +258,27 @@ impl ParsedFace {
             at_nose + t * (at_mouth - at_nose)
         };
         let outside_fold = smoothstep(fold, fold + 0.12 * unit, (u - nose[0]).abs());
+        let cheeks = below_eyes * above_mouth * outside_fold;
 
-        forehead.max(below_eyes * above_mouth * outside_fold)
+        // The bridge of the nose down to its tip, narrow enough to stay off the wings.
+        // The nostrils are below the tip, so the band ends there.
+        let nose_band = (1.0 - smoothstep(0.14 * unit, 0.20 * unit, (u - nose[0]).abs()))
+            * smoothstep(eye_y + 0.05 * unit, eye_y + 0.20 * unit, v)
+            * (1.0 - smoothstep(nose[1] - 0.10 * unit, nose[1] + 0.02 * unit, v));
+
+        // The chin, below the shadow of the lower lip and between the lines that run down
+        // from the corners of the mouth.
+        let mouth_x = (right_mouth[0] + left_mouth[0]) * 0.5;
+        let mouth_half = ((left_mouth[0] - right_mouth[0]) * 0.5).abs();
+        let chin = smoothstep(mouth_y + 0.30 * unit, mouth_y + 0.38 * unit, v)
+            * (1.0
+                - smoothstep(
+                    mouth_half + 0.05 * unit,
+                    mouth_half + 0.15 * unit,
+                    (u - mouth_x).abs(),
+                ));
+
+        forehead.max(cheeks).max(nose_band).max(chin)
     }
 
     /// Image-space position that identifies this face.
@@ -292,17 +313,57 @@ impl ParsedFace {
         b
     }
 
+    /// How much of the neck counts as skin at crop row `v`. The parser only sees the top
+    /// of the neck, so the retouch fades out below the chin instead of stopping in a
+    /// straight line where the parser's view ends.
+    fn neck_weight(&self, v: f32) -> f32 {
+        let [right_eye, left_eye, _, right_mouth, left_mouth] = self.landmarks;
+        let eye_y = (right_eye[1] + left_eye[1]) * 0.5;
+        let mouth_y = (right_mouth[1] + left_mouth[1]) * 0.5;
+        let unit = (left_eye[0] - right_eye[0])
+            .abs()
+            .max((mouth_y - eye_y) * 0.8)
+            .max(8.0);
+
+        let end = (mouth_y + 1.6 * unit).min(PARSER_SIZE as f32 * 0.94);
+        let start = (mouth_y + 0.5 * unit).min(end - 0.4 * unit);
+        1.0 - smoothstep(start, end, v)
+    }
+
+    /// Fades a region out towards the edges of what the parser saw, so nothing it finds
+    /// ends in a straight cut.
+    fn border_weight(u: f32, v: f32) -> f32 {
+        let last = PARSER_SIZE as f32;
+        let distance = u.min(v).min(last - u).min(last - v);
+        smoothstep(0.0, last * 0.06, distance)
+    }
+
     fn region_plane(&self, region: FaceRegion) -> Vec<f32> {
         let area = PARSER_SIZE * PARSER_SIZE;
         let mut plane = vec![0.0_f32; area];
         for &class in region.classes() {
             let probs = &self.probs[class * area..(class + 1) * area];
+            let fade_neck = region == FaceRegion::Skin && class == NECK;
             plane
                 .iter_mut()
                 .zip(probs)
-                .for_each(|(out, &p)| *out += p as f32 / 255.0);
+                .enumerate()
+                .for_each(|(i, (out, &p))| {
+                    let weight = if fade_neck {
+                        self.neck_weight((i / PARSER_SIZE) as f32 + 0.5)
+                    } else {
+                        1.0
+                    };
+                    *out += p as f32 / 255.0 * weight;
+                });
         }
         plane.iter_mut().for_each(|v| *v = v.min(1.0));
+        if region == FaceRegion::Skin {
+            for (i, value) in plane.iter_mut().enumerate() {
+                let (u, v) = ((i % PARSER_SIZE) as f32, (i / PARSER_SIZE) as f32);
+                *value *= Self::border_weight(u + 0.5, v + 0.5);
+            }
+        }
         if region == FaceRegion::BlemishZone {
             for (i, value) in plane.iter_mut().enumerate() {
                 let (u, v) = ((i % PARSER_SIZE) as f32, (i / PARSER_SIZE) as f32);
@@ -714,7 +775,7 @@ mod tests {
     }
 
     #[test]
-    fn blemish_zone_is_forehead_and_cheeks_only() {
+    fn blemish_zone_covers_face_but_not_nostrils_or_folds() {
         let face = align_face(&detection([
             [406.0, 493.0],
             [634.0, 492.0],
@@ -728,12 +789,17 @@ mod tests {
         assert!(weight(512.0, 330.0) > 0.99, "forehead");
         assert!(weight(360.0, 620.0) > 0.99, "right cheek");
         assert!(weight(680.0, 620.0) > 0.99, "left cheek");
-        assert!(weight(505.0, 640.0) < 0.01, "nose");
+        assert!(weight(505.0, 560.0) > 0.99, "bridge of the nose");
+        assert!(weight(505.0, 615.0) > 0.99, "above the tip of the nose");
+        assert!(weight(470.0, 670.0) < 0.01, "right nostril");
+        assert!(weight(535.0, 670.0) < 0.01, "left nostril");
         assert!(weight(505.0, 700.0) < 0.01, "under the nose");
         assert!(weight(430.0, 700.0) < 0.01, "right nasolabial fold");
         assert!(weight(600.0, 700.0) < 0.01, "left nasolabial fold");
         assert!(weight(445.0, 650.0) < 0.01, "wing of the nose");
-        assert!(weight(512.0, 860.0) < 0.01, "chin");
+        assert!(weight(512.0, 860.0) > 0.99, "chin");
+        assert!(weight(512.0, 770.0) < 0.01, "lower lip shadow");
+        assert!(weight(360.0, 800.0) < 0.01, "below the right mouth corner");
         assert!(weight(400.0, 500.0) < 0.01, "eye");
     }
 

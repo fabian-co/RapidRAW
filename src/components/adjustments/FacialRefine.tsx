@@ -28,11 +28,11 @@ interface FacialRefineProps {
 }
 
 const FACE_SLIDERS = [
-  { key: 'intensity', defaultValue: 40 },
-  { key: 'blemish', defaultValue: 50 },
-  { key: 'shine', defaultValue: 40 },
-  { key: 'evenTone', defaultValue: 35 },
-  { key: 'texture', defaultValue: 75 },
+  { key: 'intensity', defaultValue: 0 },
+  { key: 'blemish', defaultValue: 0 },
+  { key: 'shine', defaultValue: 0 },
+  { key: 'evenTone', defaultValue: 0 },
+  { key: 'textureSmoothing', defaultValue: 0 },
   { key: 'eyes', defaultValue: 0 },
   { key: 'teeth', defaultValue: 0 },
 ] as const;
@@ -40,7 +40,7 @@ const FACE_SLIDERS = [
 type FaceSliderKey = (typeof FACE_SLIDERS)[number]['key'];
 type FaceSettings = Partial<Record<FaceSliderKey, number>>;
 
-const REFINE_DEBOUNCE_MS = 150;
+const REFINE_DEBOUNCE_MS = 40;
 
 const faceParameters = (patch: AiPatch) => patch.subMasks[0]?.parameters ?? {};
 

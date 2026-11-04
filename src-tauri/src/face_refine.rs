@@ -1,7 +1,7 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::io::Cursor;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use base64::{Engine as _, engine::general_purpose};
 use image::{GrayImage, RgbImage, imageops};
@@ -37,6 +37,96 @@ pub struct FaceCrop {
     eye_whites: Vec<u8>,
     teeth: Vec<u8>,
     thumbnail: String,
+    /// Computed once per face, so slider changes only have to mix them.
+    layers: OnceLock<EffectLayers>,
+}
+
+/// What each Facial Refine setting does to a face at full strength, as a per-channel
+/// difference from the original crop. Any combination of settings is then a weighted
+/// sum of these, instead of a new run of the retouch.
+struct EffectLayers {
+    /// In the order of `FaceRefineSettings::amounts`.
+    deltas: [Vec<i16>; 7],
+}
+
+fn difference(original: &[u8], result: &[u8]) -> Vec<i16> {
+    original
+        .par_iter()
+        .zip(result.par_iter())
+        .map(|(&a, &b)| b as i16 - a as i16)
+        .collect()
+}
+
+fn compute_layers(crop: &FaceCrop) -> EffectLayers {
+    let started = std::time::Instant::now();
+    let (w, h) = (crop.w as usize, crop.h as usize);
+    let scale = crop.width * 1.2;
+    let hints = FaceHints {
+        skin: &crop.skin,
+        features: &crop.features,
+        blemish_zone: Some(&crop.blemish_zone),
+    };
+    let skin_only = |index: usize| {
+        let mut params = SkinRetouchParams {
+            smoothing: 0.0,
+            texture: 1.0,
+            blemish: 0.0,
+            shine: 0.0,
+            even_tone: 0.0,
+            skin_protection: 0.85,
+        };
+        match index {
+            0 => params.smoothing = 1.0,
+            1 => params.texture = 0.0,
+            2 => params.blemish = 1.0,
+            3 => params.shine = 1.0,
+            _ => params.even_tone = 1.0,
+        }
+        let result = retouch_skin_scaled(
+            &crop.rgb,
+            &crop.selection,
+            w,
+            h,
+            scale,
+            &params,
+            Some(hints),
+        );
+        difference(&crop.rgb, &result)
+    };
+    let feature_only = |eye_amount: f32, teeth_amount: f32| {
+        let mut result = crop.rgb.clone();
+        enhance_eyes_and_teeth(
+            &mut result,
+            w,
+            h,
+            scale,
+            &FeatureEnhance {
+                eyes: &crop.eyes,
+                eye_whites: &crop.eye_whites,
+                teeth: &crop.teeth,
+                eye_amount,
+                teeth_amount,
+            },
+        );
+        difference(&crop.rgb, &result)
+    };
+
+    let mut deltas: Vec<Vec<i16>> = (0..7)
+        .into_par_iter()
+        .map(|index| match index {
+            5 => feature_only(1.0, 0.0),
+            6 => feature_only(0.0, 1.0),
+            _ => skin_only(index),
+        })
+        .collect();
+    let deltas = std::array::from_fn(|i| std::mem::take(&mut deltas[i]));
+    log::info!(
+        "facial refine layers ({}x{} face crop) took {:.2?}",
+        crop.w,
+        crop.h,
+        started.elapsed()
+    );
+    EffectLayers { deltas }
 }
 
 /// The face crops of the loaded image, valid while `key` matches.
@@ -50,6 +140,27 @@ pub struct FaceRefineSettings {
     pub skin: SkinRetouchParams,
     pub eyes: f32,
     pub teeth: f32,
+}
+
+impl FaceRefineSettings {
+    /// How strongly each effect layer applies, `0.0..=1.0`.
+    fn amounts(&self) -> [f32; 7] {
+        let skin = &self.skin;
+        [
+            skin.smoothing,
+            1.0 - skin.texture,
+            skin.blemish,
+            skin.shine,
+            skin.even_tone,
+            self.eyes,
+            self.teeth,
+        ]
+    }
+
+    /// True when no setting would change a single pixel of the face.
+    fn is_neutral(&self) -> bool {
+        self.amounts().iter().all(|&amount| amount <= 0.001)
+    }
 }
 
 fn to_u8(plane: &[f32]) -> Vec<u8> {
@@ -148,43 +259,36 @@ fn build_face_crop(face: &ParsedFace, source: &RgbImage) -> Option<FaceCrop> {
             "data:image/jpeg;base64,{}",
             general_purpose::STANDARD.encode(jpeg.get_ref())
         ),
+        layers: OnceLock::new(),
     })
 }
 
 /// Retouches one cached face. Returns the new pixels of the crop and where they apply.
 fn refine_face_crop(crop: &FaceCrop, settings: &FaceRefineSettings) -> (Vec<u8>, Vec<u8>) {
-    let (w, h) = (crop.w as usize, crop.h as usize);
-    let scale = crop.width * 1.2;
+    let layers = crop.layers.get_or_init(|| compute_layers(crop));
+    let active: Vec<(f32, &[i16])> = settings
+        .amounts()
+        .iter()
+        .zip(layers.deltas.iter())
+        .filter(|(amount, _)| **amount > 0.001)
+        .map(|(&amount, delta)| (amount, delta.as_slice()))
+        .collect();
 
-    let mut color = retouch_skin_scaled(
-        &crop.rgb,
-        &crop.selection,
-        w,
-        h,
-        scale,
-        &settings.skin,
-        Some(FaceHints {
-            skin: &crop.skin,
-            features: &crop.features,
-            blemish_zone: Some(&crop.blemish_zone),
-        }),
-    );
+    let color: Vec<u8> = crop
+        .rgb
+        .par_iter()
+        .enumerate()
+        .map(|(i, &original)| {
+            let change: f32 = active
+                .iter()
+                .map(|(amount, delta)| amount * delta[i] as f32)
+                .sum();
+            (original as f32 + change).round().clamp(0.0, 255.0) as u8
+        })
+        .collect();
+
     let mut mask = crop.selection.clone();
-
     if settings.eyes > 0.0 || settings.teeth > 0.0 {
-        enhance_eyes_and_teeth(
-            &mut color,
-            w,
-            h,
-            scale,
-            &FeatureEnhance {
-                eyes: &crop.eyes,
-                eye_whites: &crop.eye_whites,
-                teeth: &crop.teeth,
-                eye_amount: settings.eyes,
-                teeth_amount: settings.teeth,
-            },
-        );
         // Eyes and teeth are outside the skin selection, so the patch has to cover them too.
         mask.par_iter_mut().enumerate().for_each(|(i, m)| {
             if settings.eyes > 0.0 {
@@ -196,6 +300,16 @@ fn refine_face_crop(crop: &FaceCrop, settings: &FaceRefineSettings) -> (Vec<u8>,
         });
     }
     (color, mask)
+}
+
+/// Builds the effect layers of every face in the background, so the first slider change
+/// does not have to wait for them.
+fn warm_layers(cache: Arc<FaceCropCache>) {
+    tauri::async_runtime::spawn_blocking(move || {
+        cache.crops.par_iter().for_each(|crop| {
+            crop.layers.get_or_init(|| compute_layers(crop));
+        });
+    });
 }
 
 /// The image the faces are read from must not contain Facial Refine's own patches.
@@ -298,6 +412,7 @@ pub async fn detect_faces_for_refine(
     app_handle: tauri::AppHandle,
 ) -> Result<Vec<DetectedFace>, String> {
     let cache = face_crops(&current_adjustments, &state, &app_handle).await?;
+    warm_layers(cache.clone());
     Ok(cache
         .crops
         .iter()
@@ -336,18 +451,34 @@ pub async fn generate_face_refine_patch(
             .and_then(|v| v.as_f64())
             .map_or(default, |v| (v as f32 / 100.0).clamp(0.0, 1.0))
     };
+    // Every slider is an amount of change, so 0 everywhere leaves the face untouched.
     let settings = FaceRefineSettings {
         skin: SkinRetouchParams {
-            smoothing: percent("intensity", 0.4),
-            texture: percent("texture", 0.75),
-            blemish: percent("blemish", 0.5),
-            shine: percent("shine", 0.4),
-            even_tone: percent("evenTone", 0.35),
+            smoothing: percent("intensity", 0.0),
+            texture: 1.0 - percent("textureSmoothing", 0.0),
+            blemish: percent("blemish", 0.0),
+            shine: percent("shine", 0.0),
+            even_tone: percent("evenTone", 0.0),
             skin_protection: 0.85,
         },
         eyes: percent("eyes", 0.0),
         teeth: percent("teeth", 0.0),
     };
+
+    // Pasting the crop back would still re-encode the face, so a face with nothing to do
+    // gets an empty patch, which the image pipeline skips.
+    if settings.is_neutral() {
+        return Ok(serde_json::json!({
+            "color": "",
+            "mask": "",
+            "offsetX": crop.x,
+            "offsetY": crop.y,
+            "width": crop.w,
+            "height": crop.h,
+            "isSrgbEncoded": cache.is_raw
+        })
+        .to_string());
+    }
 
     let started = std::time::Instant::now();
     let (color, mask) = refine_face_crop(crop, &settings);
@@ -380,6 +511,102 @@ mod tests {
     use super::*;
     use crate::face_parsing::{FaceModels, load_face_parser_session};
 
+    fn settings(smoothing: f32, texture: f32, eyes: f32) -> FaceRefineSettings {
+        FaceRefineSettings {
+            skin: SkinRetouchParams {
+                smoothing,
+                texture,
+                blemish: 0.0,
+                shine: 0.0,
+                even_tone: 0.0,
+                skin_protection: 0.85,
+            },
+            eyes,
+            teeth: 0.0,
+        }
+    }
+
+    /// A skin-colored square with pores and a few dark spots, its eyes and teeth bands.
+    fn synthetic_crop() -> FaceCrop {
+        let (w, h) = (320u32, 320u32);
+        let n = (w * h) as usize;
+        let mut rgb = Vec::with_capacity(n * 3);
+        for i in 0..n {
+            let (x, y) = (i % w as usize, i / w as usize);
+            let noise = ((x * 7919 + y * 104_729) % 23) as i32 - 11;
+            let spot = if (x % 60 < 4) && (y % 60 < 4) { -60 } else { 0 };
+            for base in [205, 150, 125] {
+                rgb.push((base + noise + spot).clamp(0, 255) as u8);
+            }
+        }
+        let band = |from: usize, to: usize| -> Vec<u8> {
+            (0..n)
+                .map(|i| {
+                    if (from..to).contains(&(i / w as usize)) {
+                        255
+                    } else {
+                        0
+                    }
+                })
+                .collect()
+        };
+        FaceCrop {
+            center: [160.0, 160.0],
+            width: 260.0,
+            x: 0,
+            y: 0,
+            w,
+            h,
+            rgb,
+            selection: vec![255; n],
+            skin: vec![255; n],
+            features: vec![0; n],
+            blemish_zone: vec![255; n],
+            eyes: band(100, 120),
+            eye_whites: band(100, 120),
+            teeth: band(220, 235),
+            thumbnail: String::new(),
+            layers: OnceLock::new(),
+        }
+    }
+
+    #[test]
+    fn layers_match_the_full_retouch_of_each_setting() {
+        let crop = synthetic_crop();
+        let (color, _) = refine_face_crop(&crop, &settings(0.0, 1.0, 0.0));
+        assert_eq!(color, crop.rgb);
+
+        let (w, h) = (crop.w as usize, crop.h as usize);
+        for (smoothing, texture) in [(1.0, 1.0), (0.0, 0.0)] {
+            let settings = settings(smoothing, texture, 0.0);
+            let (layered, _) = refine_face_crop(&crop, &settings);
+            let exact = retouch_skin_scaled(
+                &crop.rgb,
+                &crop.selection,
+                w,
+                h,
+                crop.width * 1.2,
+                &settings.skin,
+                Some(FaceHints {
+                    skin: &crop.skin,
+                    features: &crop.features,
+                    blemish_zone: Some(&crop.blemish_zone),
+                }),
+            );
+            assert_ne!(exact, crop.rgb);
+            assert_eq!(layered, exact);
+        }
+    }
+
+    #[test]
+    fn only_all_zero_settings_are_neutral() {
+        assert!(settings(0.0, 1.0, 0.0).is_neutral());
+        assert!(!settings(0.1, 1.0, 0.0).is_neutral());
+        // Removing pores is a change on its own, even with no smoothing.
+        assert!(!settings(0.0, 0.5, 0.0).is_neutral());
+        assert!(!settings(0.0, 1.0, 0.2).is_neutral());
+    }
+
     /// Runs the real models. Point `FACE_TEST_DIR` at a folder holding `yunet.onnx`,
     /// `parsing.onnx` and `face.jpg`; the results are written next to them.
     #[test]
@@ -399,7 +626,7 @@ mod tests {
         let small = image::open(dir.join("face.jpg")).unwrap().to_rgb8();
         let settings = FaceRefineSettings {
             skin: SkinRetouchParams {
-                smoothing: 0.4,
+                smoothing: 1.0,
                 texture: 0.75,
                 blemish: 1.0,
                 shine: 0.4,
@@ -421,7 +648,7 @@ mod tests {
                 ("blemish zone", &crop.blemish_zone),
                 ("eyes", &crop.eyes),
                 ("eye whites", &crop.eye_whites),
-                ("teeth", &crop.teeth),
+                // Teeth are left out: a closed-mouth smile has none to find.
             ] {
                 assert!(plane.iter().any(|&p| p > 127), "{name} {region}");
             }
@@ -429,6 +656,10 @@ mod tests {
             image::GrayImage::from_raw(crop.w, crop.h, crop.blemish_zone.clone())
                 .unwrap()
                 .save(dir.join(format!("{name}_blemish_zone.png")))
+                .unwrap();
+            image::GrayImage::from_raw(crop.w, crop.h, crop.selection.clone())
+                .unwrap()
+                .save(dir.join(format!("{name}_selection.png")))
                 .unwrap();
 
             let started = std::time::Instant::now();
@@ -441,6 +672,25 @@ mod tests {
             );
             assert_eq!(mask.len(), color.len() / 3);
 
+            // Later slider changes only mix the cached layers.
+            let started = std::time::Instant::now();
+            let _ = refine_face_crop(&crop, &settings);
+            println!("{name}: cached slider change in {:?}", started.elapsed());
+            let neutral = FaceRefineSettings {
+                skin: SkinRetouchParams {
+                    smoothing: 0.0,
+                    texture: 1.0,
+                    blemish: 0.0,
+                    shine: 0.0,
+                    even_tone: 0.0,
+                    skin_protection: 0.85,
+                },
+                eyes: 0.0,
+                teeth: 0.0,
+            };
+            assert!(neutral.is_neutral());
+            assert_eq!(refine_face_crop(&crop, &neutral).0, crop.rgb, "{name}");
+
             let mut result = image.clone();
             for (i, px) in color.as_chunks::<3>().0.iter().enumerate() {
                 let (cx, cy) = (crop.x + i as u32 % crop.w, crop.y + i as u32 / crop.w);
@@ -452,6 +702,33 @@ mod tests {
             }
             result
                 .save(dir.join(format!("{name}_refined.png")))
+                .unwrap();
+
+            // Blemish removal on its own, to judge it without the other effects.
+            let only_blemish = FaceRefineSettings {
+                skin: SkinRetouchParams {
+                    smoothing: 0.0,
+                    texture: 1.0,
+                    blemish: 1.0,
+                    shine: 0.0,
+                    even_tone: 0.0,
+                    skin_protection: 0.85,
+                },
+                eyes: 0.0,
+                teeth: 0.0,
+            };
+            let (color, mask) = refine_face_crop(&crop, &only_blemish);
+            let mut result = image.clone();
+            for (i, px) in color.as_chunks::<3>().0.iter().enumerate() {
+                let (cx, cy) = (crop.x + i as u32 % crop.w, crop.y + i as u32 / crop.w);
+                let alpha = mask[i] as f32 / 255.0;
+                let dst = result.get_pixel_mut(cx, cy);
+                for c in 0..3 {
+                    dst[c] = (dst[c] as f32 * (1.0 - alpha) + px[c] as f32 * alpha) as u8;
+                }
+            }
+            result
+                .save(dir.join(format!("{name}_blemish_only.png")))
                 .unwrap();
         }
     }

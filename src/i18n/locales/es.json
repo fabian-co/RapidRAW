@@ -195,7 +195,7 @@
         "intensity": "Suavizar piel",
         "shine": "Reducir brillos y sudor",
         "teeth": "Blanquear dientes",
-        "texture": "Textura de la piel"
+        "textureSmoothing": "Suavizar textura (poros)"
       },
       "facialRefineRedetect": "Volver a detectar caras",
       "facialRefineRemove": "Quitar esta cara",

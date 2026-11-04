@@ -195,7 +195,7 @@
         "intensity": "Skin Smoothing",
         "shine": "Shine & Sweat Reduction",
         "teeth": "Teeth Whitening",
-        "texture": "Skin Texture"
+        "textureSmoothing": "Pore Smoothing"
       },
       "facialRefineRedetect": "Detect Faces Again",
       "facialRefineRemove": "Remove this face",
