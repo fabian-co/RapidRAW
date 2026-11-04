@@ -44,16 +44,38 @@ pub struct FaceCrop {
 /// What each Facial Refine setting does to a face at full strength, as a per-channel
 /// difference from the original crop. Any combination of settings is then a weighted
 /// sum of these, instead of a new run of the retouch.
+///
+/// Blemish removal changes what the other skin effects work on: smoothing the pores of
+/// a pimple that is being removed would leave a mark. So those effects are also kept as
+/// they act on the face with its blemishes removed, and the two versions are mixed by
+/// the blemish setting.
 struct EffectLayers {
-    /// In the order of `FaceRefineSettings::amounts`.
-    deltas: [Vec<i16>; 7],
+    /// Indexed by `Effect`. Changes beyond what a byte holds are rare and clamped.
+    deltas: Vec<Vec<i8>>,
 }
 
-fn difference(original: &[u8], result: &[u8]) -> Vec<i16> {
+/// The effect layers of a face, in the order of `FaceRefineSettings::amounts`, then the
+/// skin effects again on the blemish free face.
+mod effect {
+    pub const SMOOTHING: usize = 0;
+    pub const TEXTURE: usize = 1;
+    pub const BLEMISH: usize = 2;
+    pub const SHINE: usize = 3;
+    pub const EVEN_TONE: usize = 4;
+    pub const EYES: usize = 5;
+    pub const TEETH: usize = 6;
+    /// The skin effects that blemish removal changes, and where their blemish free
+    /// versions are stored.
+    pub const ON_CLEAN_SKIN: [(usize, usize); 4] =
+        [(SMOOTHING, 7), (TEXTURE, 8), (SHINE, 9), (EVEN_TONE, 10)];
+    pub const COUNT: usize = 11;
+}
+
+fn difference(original: &[u8], result: &[u8]) -> Vec<i8> {
     original
         .par_iter()
         .zip(result.par_iter())
-        .map(|(&a, &b)| b as i16 - a as i16)
+        .map(|(&a, &b)| (b as i16 - a as i16).clamp(-127, 127) as i8)
         .collect()
 }
 
@@ -66,7 +88,7 @@ fn compute_layers(crop: &FaceCrop) -> EffectLayers {
         features: &crop.features,
         blemish_zone: Some(&crop.blemish_zone),
     };
-    let skin_only = |index: usize| {
+    let skin_effect = |base: &[u8], index: usize| {
         let mut params = SkinRetouchParams {
             smoothing: 0.0,
             texture: 1.0,
@@ -76,24 +98,15 @@ fn compute_layers(crop: &FaceCrop) -> EffectLayers {
             skin_protection: 0.85,
         };
         match index {
-            0 => params.smoothing = 1.0,
-            1 => params.texture = 0.0,
-            2 => params.blemish = 1.0,
-            3 => params.shine = 1.0,
+            effect::SMOOTHING => params.smoothing = 1.0,
+            effect::TEXTURE => params.texture = 0.0,
+            effect::BLEMISH => params.blemish = 1.0,
+            effect::SHINE => params.shine = 1.0,
             _ => params.even_tone = 1.0,
         }
-        let result = retouch_skin_scaled(
-            &crop.rgb,
-            &crop.selection,
-            w,
-            h,
-            scale,
-            &params,
-            Some(hints),
-        );
-        difference(&crop.rgb, &result)
+        retouch_skin_scaled(base, &crop.selection, w, h, scale, &params, Some(hints))
     };
-    let feature_only = |eye_amount: f32, teeth_amount: f32| {
+    let feature_effect = |eye_amount: f32, teeth_amount: f32| {
         let mut result = crop.rgb.clone();
         enhance_eyes_and_teeth(
             &mut result,
@@ -111,15 +124,26 @@ fn compute_layers(crop: &FaceCrop) -> EffectLayers {
         difference(&crop.rgb, &result)
     };
 
-    let mut deltas: Vec<Vec<i16>> = (0..7)
+    let clean = skin_effect(&crop.rgb, effect::BLEMISH);
+    let mut deltas: Vec<Vec<i8>> = (0..effect::COUNT)
         .into_par_iter()
         .map(|index| match index {
-            5 => feature_only(1.0, 0.0),
-            6 => feature_only(0.0, 1.0),
-            _ => skin_only(index),
+            effect::BLEMISH => difference(&crop.rgb, &clean),
+            effect::EYES => feature_effect(1.0, 0.0),
+            effect::TEETH => feature_effect(0.0, 1.0),
+            effect::SMOOTHING | effect::TEXTURE | effect::SHINE | effect::EVEN_TONE => {
+                difference(&crop.rgb, &skin_effect(&crop.rgb, index))
+            }
+            _ => {
+                let (on_face, _) = effect::ON_CLEAN_SKIN
+                    .into_iter()
+                    .find(|&(_, stored)| stored == index)
+                    .unwrap();
+                difference(&clean, &skin_effect(&clean, on_face))
+            }
         })
         .collect();
-    let deltas = std::array::from_fn(|i| std::mem::take(&mut deltas[i]));
+    deltas.shrink_to_fit();
     log::info!(
         "facial refine layers ({}x{} face crop) took {:.2?}",
         crop.w,
@@ -266,12 +290,23 @@ fn build_face_crop(face: &ParsedFace, source: &RgbImage) -> Option<FaceCrop> {
 /// Retouches one cached face. Returns the new pixels of the crop and where they apply.
 fn refine_face_crop(crop: &FaceCrop, settings: &FaceRefineSettings) -> (Vec<u8>, Vec<u8>) {
     let layers = crop.layers.get_or_init(|| compute_layers(crop));
-    let active: Vec<(f32, &[i16])> = settings
-        .amounts()
+    let amounts = settings.amounts();
+    let blemish = amounts[effect::BLEMISH];
+    let mut weights = [0.0_f32; effect::COUNT];
+    for (index, &amount) in amounts.iter().enumerate() {
+        weights[index] = amount;
+    }
+    // The skin effects move from the face as it is to the blemish free face as more of
+    // the blemishes are removed.
+    for (on_face, on_clean) in effect::ON_CLEAN_SKIN {
+        weights[on_clean] = amounts[on_face] * blemish;
+        weights[on_face] = amounts[on_face] * (1.0 - blemish);
+    }
+    let active: Vec<(f32, &[i8])> = weights
         .iter()
         .zip(layers.deltas.iter())
-        .filter(|(amount, _)| **amount > 0.001)
-        .map(|(&amount, delta)| (amount, delta.as_slice()))
+        .filter(|(weight, _)| **weight > 0.001)
+        .map(|(&weight, delta)| (weight, delta.as_slice()))
         .collect();
 
     let color: Vec<u8> = crop
@@ -596,6 +631,37 @@ mod tests {
             assert_ne!(exact, crop.rgb);
             assert_eq!(layered, exact);
         }
+    }
+
+    /// With blemishes removed, smoothing must not also work on them: the pores and tone
+    /// of a removed spot are not smoothed a second time into a light mark.
+    #[test]
+    fn smoothing_works_on_the_blemish_free_face() {
+        let crop = synthetic_crop();
+        let mut settings = settings(1.0, 0.0, 0.0);
+        settings.skin.blemish = 1.0;
+        let (layered, _) = refine_face_crop(&crop, &settings);
+        let (w, h) = (crop.w as usize, crop.h as usize);
+        let exact = retouch_skin_scaled(
+            &crop.rgb,
+            &crop.selection,
+            w,
+            h,
+            crop.width * 1.2,
+            &settings.skin,
+            Some(FaceHints {
+                skin: &crop.skin,
+                features: &crop.features,
+                blemish_zone: Some(&crop.blemish_zone),
+            }),
+        );
+        let worst = layered
+            .iter()
+            .zip(exact.iter())
+            .map(|(&a, &b)| a.abs_diff(b))
+            .max()
+            .unwrap();
+        assert!(worst <= 8, "layered result is off by up to {worst}");
     }
 
     #[test]

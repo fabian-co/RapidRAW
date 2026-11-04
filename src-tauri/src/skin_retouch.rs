@@ -814,15 +814,21 @@ fn retouch_skin_with(
         .collect();
 
     if params.even_tone > 0.001 {
-        for plane in [&mut cb, &mut cr] {
-            let local = guided.filter(plane, eps);
-            let broad = weighted_blur(plane, &skin_weight, w, h, radius as f32 * 2.0);
+        // Blotches and redness are color that differs from the skin around it, so each
+        // pixel's color is drawn towards the color of the surrounding skin. Excess red is
+        // drawn in fully; the rest a little less, so the face keeps some natural variation.
+        let t = params.even_tone;
+        let tone_eps = 0.03_f32 * 0.03;
+        for (plane, is_red) in [(&mut cb, false), (&mut cr, true)] {
+            let local = guided.filter(plane, tone_eps);
+            let broad = weighted_blur(plane, &skin_weight, w, h, radius as f32 * 1.5);
             plane
                 .par_iter_mut()
                 .zip(local.par_iter())
                 .zip(broad.par_iter())
                 .for_each(|((v, &l), &b)| {
-                    *v += params.even_tone * (l - *v) + 0.5 * params.even_tone * (b - l);
+                    let pull = if is_red && l > b { 1.0 } else { 0.8 };
+                    *v += t * (l - *v) + t * pull * (b - l);
                 });
         }
     }
