@@ -92,6 +92,7 @@
         "highlights": "Altes llums",
         "hue": "To",
         "mix": "Mescla B/N",
+        "mixPickerTooltip": "Selector de la mescla B/N: feu clic i arrossegueu amunt o avall a la foto",
         "saturation": "Saturació",
         "shadows": "Ombres",
         "strength": "Intensitat",
@@ -150,6 +151,8 @@
       "aiDenoiseColor": "Soroll de color",
       "classicDenoise": "Reducció de soroll clàssica",
       "aiDenoiseDetail": "Detall",
+      "aiUpscale": "RapidRes 2x",
+      "aiUpscaleDetail": "Detall",
       "blueYellow": "Blau/Groc",
       "centre": "Centre",
       "chromaticAberration": "Aberració cromàtica",
@@ -165,6 +168,7 @@
       "negativeGreen": "Verd",
       "negativeRed": "Vermell",
       "noiseReduction": "Reducció de soroll",
+      "superResolution": "RapidRes",
       "presence": "Presència",
       "redCyan": "Vermell/Cian",
       "sharpening": "Enfocament",
@@ -222,7 +226,25 @@
       "roundness": "Rodonesa",
       "size": "Mida",
       "spatial": "Espacial",
-      "vignette": "Vinyetatge"
+      "vignette": "Vinyetatge",
+      "motionBlur": "Desenfocament de moviment",
+      "motionBlurAngle": "Angle",
+      "motionBlurDepth": "Profunditat",
+      "motionBlurHighlights": "Llums",
+      "motionBlurLayer": "Moviment",
+      "motionBlurLayers": {
+        "auto": "Automàtic",
+        "panning": "Escombratge",
+        "subject": "Subjecte en moviment",
+        "uniform": "Uniforme"
+      },
+      "motionBlurType": "Tipus",
+      "motionBlurTypes": {
+        "linear": "Lineal",
+        "zoom": "Zoom",
+        "spin": "Gir",
+        "smooth": "Suau"
+      }
     }
   },
   "contextMenus": {
@@ -306,6 +328,8 @@
       "redo": "Refer",
       "removeBlackWhite": "Treure blanc i negre",
       "removeDenoise": "Treure reducció de soroll",
+      "superResolution": "RapidRes (2x)",
+      "removeSuperResolution": "Treure RapidRes",
       "removeNegativeConversion": "Treure conversió de negatiu",
       "resetAdjustments": "Restablir ajustaments",
       "stitchPanorama": "Unir panorama",
@@ -381,6 +405,9 @@
       "denoise_many": "Reduir soroll",
       "denoise_one": "Reduir soroll",
       "denoise_other": "Reduir soroll",
+      "superResolution_many": "RapidRes (2x)",
+      "superResolution_one": "RapidRes (2x)",
+      "superResolution_other": "RapidRes (2x)",
       "duplicateImage": "Duplicar imatge",
       "enable": "Activar",
       "exportImage_many": "Exportar {{count}} imatges",
@@ -480,6 +507,15 @@
         "feather": "Esvaïment del pinzell",
         "size": "Mida del pinzell"
       },
+      "cloneHeal": {
+        "cloneTooltip": "Copia l'origen exactament, inclosos la brillantor i el color",
+        "dragSource": "Arrossega per moure l'origen",
+        "healTooltip": "Copia la textura de l'origen i l'adapta a la brillantor i el color de l'entorn",
+        "hintActive": "Arrossega el contorn de l'origen per triar d'on provenen els píxels. Cada traç nou esdevé una zona pròpia. Mantén Maj premut per afegir-hi.",
+        "hintEmpty": "Pinta sobre una taca, un cable o una distracció. Es troba automàticament un origen adequat.",
+        "mode": "Mode",
+        "newSource": "Cerca un altre origen"
+      },
       "comingSoon": "Aviat disponible",
       "connection": {
         "backendLabel": "Rerefons d'IA:",
@@ -500,6 +536,7 @@
       "createNewTitle": "Crear nova edició generativa",
       "createNewTooltip": "Crear nova edició {{name}}",
       "denoising": "Executant la reducció de soroll IA...",
+      "upscaling": "Executant RapidRes...",
       "dropzoneText": "Deixeu anar aquí per crear una edició nova",
       "editSettingsTitle": "Configuració d'edició",
       "editsTitle": "Edicions",
@@ -817,8 +854,7 @@
       "toggleAnalyticsTooltip": "Alternar visualització d'anàlisi",
       "tooltips": {
         "addToCurrent": "Afegir {{name}} a la màscara actual o crear-ne una de nova (Clic dret)",
-        "createNew": "Crear nova màscara de {{name}}",
-        "selectNewSourcePoint": "{{modifier}} + Clic per seleccionar un nou punt d'origen"
+        "createNew": "Crear nova màscara de {{name}}"
       }
     },
     "metadata": {
@@ -961,6 +997,9 @@
   "export": {
     "advanced": {
       "exportMasks": "Exportar màscares com a fitxers separats",
+      "exportOriginal": "Exporta també l'original",
+      "originalCrop": "Aplica el retall",
+      "originalKeepExposure": "Mantén l'exposició",
       "preserveFolders": "Mantenir l'estructura de carpetes",
       "preserveTimestamps": "Establir les marques de temps dels fitxers des de la data de captura EXIF",
       "title": "Configuració d'exportació"
@@ -1157,6 +1196,7 @@
       "failed": "Fallits ({{failedCount}})",
       "kinds": {
         "denoise": "Reduint soroll amb IA",
+        "upscale": "Ampliant amb RapidRes",
         "depthMap": "Analitzant la profunditat",
         "depthMask": "Generant la màscara de profunditat",
         "faceMask": "Generant la màscara de cara",
@@ -1496,6 +1536,7 @@
       "linear": "Lineal",
       "liquify": "Liquar",
       "luminance": "Luminància",
+      "matchBrush": "Pinzell de coincidència",
       "others": "Altres",
       "quickErase": "Esborrat ràpid",
       "quickEraser": "Goma d'esborrar ràpida",
@@ -1560,6 +1601,7 @@
       "descReplace": "Sobreescriu tota la configuració seleccionada, restablint la resta als seus valors predeterminats.",
       "groups": {
         "aiDenoise": "Reducció de soroll amb IA",
+        "aiUpscale": "RapidRes",
         "blackWhite": "Blanc i negre",
         "chromaticAberration": "Aberració cromàtica",
         "clarityDehaze": "Claredat i Eliminar boira",
@@ -1574,6 +1616,7 @@
         "halationGlow": "Halació i Resplendor",
         "hueShift": "Canvi de to global",
         "lensBlur": "Desenfocament d'objectiu",
+        "motionBlur": "Desenfocament de moviment",
         "lensCorrection": "Correcció de l'objectiu",
         "lut": "LUT",
         "masks": "Màscares",
@@ -1721,7 +1764,6 @@
       "selectManufacturer": "Seleccioneu el fabricant",
       "title": "Correcció de l'objectiu",
       "vignetting": "Vinyetatge",
-      "waitingAutoDetect": "S'està esperant l'autodetecció...",
       "zoomInTooltip": "Apropar",
       "zoomOutTooltip": "Allunyar"
     },
@@ -1823,7 +1865,7 @@
           "fine": "Maj per afinar"
         },
         "keys": {
-          "hold": "Mantenir",
+          "hold": "Prémer / Mantenir",
           "previousImage": "Imatge ant.",
           "nextImage": "Imatge seg.",
           "reset": "Restablir",
@@ -1856,6 +1898,7 @@
       "limit": "Límit",
       "modals": {
         "aiDenoiseMessage": "Segur que vols esborrar la memòria cau de reducció de soroll IA?\n\nLes imatges amb la reducció de soroll IA activada s'hauran de tornar a processar, cosa que pot trigar diversos minuts per imatge.",
+        "aiUpscaleMessage": "Segur que vols esborrar la memòria cau de RapidRes?\n\nLes imatges amb RapidRes activat s'hauran de tornar a ampliar.",
         "aiMapsMessage": "Segur que vols buidar els mapes de profunditat i normals?\n\nLes imatges que fan servir desenfocament d’objectiu, boira o reil·luminació regeneraran els mapes el proper cop que s’obrin.",
         "aiMessage": "Esteu segur que voleu eliminar totes les etiquetes generades per IA de totes les imatges a totes les carpetes arrel actives?\n\nAixò no afectarà les etiquetes afegides pels usuaris. Aquesta acció no es pot desfer.",
         "allMessage": "Esteu segur que voleu eliminar totes les etiquetes generades per IA i les afegides pels usuaris de totes les imatges a totes les carpetes arrel actives?\n\nAquesta acció no es pot desfer.",
@@ -1883,6 +1926,7 @@
       "show": "Mostrar",
       "statuses": {
         "aiDenoiseSuccess": "Memòria cau de reducció de soroll IA esborrada correctament.",
+        "aiUpscaleSuccess": "Memòria cau de RapidRes esborrada correctament.",
         "aiSuccess": "{{count}} fitxers actualitzats. S'han eliminat les etiquetes d'IA.",
         "aiSuccess_many": "{{count}} fitxers actualitzats. S'han eliminat les etiquetes d'IA.",
         "aiSuccess_one": "{{count}} fitxer actualitzat. S'han eliminat les etiquetes d'IA.",
@@ -1902,6 +1946,8 @@
       "storage": {
         "aiDenoise": "Reducció de soroll IA",
         "aiDenoiseDesc": "Resultats de reducció de soroll a la memòria cau.",
+        "aiUpscale": "RapidRes",
+        "aiUpscaleDesc": "Ampliacions 2x de RapidRes a la memòria cau.",
         "aiMaps": "Mapes de profunditat i normals",
         "aiMapsDesc": "Els fan servir el desenfocament d’objectiu, la boira i la reil·luminació.",
         "immich": "Immich",
@@ -1950,6 +1996,11 @@
       "title": "Configuració general",
       "toolFocusMode": "Mode de concentració en eines",
       "toolFocusModeDesc": "Replega automàticament les altres eines d'un tauler quan n'amplieu una.",
+      "uiScale": "Escala de la interfície",
+      "uiScaleCompact": "Compacta",
+      "uiScaleDefault": "Per defecte",
+      "uiScaleDesc": "Fes la interfície més petita o més gran, independentment de l'escalat de pantalla del sistema. Les mides compactes aprofiten millor les pantalles petites de portàtil.",
+      "uiScaleLarge": "Gran",
       "xmpSync": "Sincronització de metadades XMP",
       "xmpSyncDesc": "Sincronitzar puntuacions, etiquetes de color i etiquetes amb fitxers sidecar XMP estàndard per a la compatibilitat amb altres editors de fotos."
     },
@@ -2219,15 +2270,14 @@
       "smallThumbnailRes": "Resolució de les miniatures de la quadrícula",
       "smallThumbnailResDesc": "Resolució de les miniatures que es mostren a la quadrícula de la biblioteca.",
       "staticDesc": "L'editor renderitza la imatge a una resolució fixa. Aquest mode és el més ràpid i consistent, la qual cosa el fa ideal per a maquinari de gamma baixa on es prioritza el rendiment suau per damunt d'un zoom amb píxels perfectes.",
-      "staticPreviewRes": "Resolució de la vista prèvia estàtica",
-      "staticPreviewResDesc": "Estableix la resolució per a les vistes prèvies estàtiques com ara el mode de retall, la correcció de l'objectiu i les eines de perspectiva. No afecta la vista prèvia principal de l'editor.",
       "threads": "Fils (Threads)",
       "thumbnailRes": "Resolució de la miniatura",
       "thumbnailResDesc": "Determina la resolució de les miniatures generades per a la biblioteca. Valors més alts produeixen imatges més nítides durant la càrrega.",
       "title": "Motor de processament",
       "wgpu": "Renderització directa WGPU",
       "wgpuDescAndroid": "Omet la codificació del navegador per a unes vistes prèvies en directe que responen a l'instant. (Desactivat a Android: La creació de la superfície nativa WGPU actualment no és compatible juntament amb la vista web mòbil.)",
-      "wgpuDescLinux": "Omet la codificació del navegador per a unes vistes prèvies en directe que responen a l'instant. (Desactivat a Linux: Tauri utilitza GTK per a les vistes web, la qual cosa entra en conflicte amb WGPU a la mateixa superfície X11 i causa parpellejos.)",
+      "wgpuDescLinuxExperimental": "Experimental a Linux i pot ser inestable.",
+      "wgpuDescLinuxX11": "No disponible a X11.",
       "wgpuDescRecommended": "Omet la codificació del navegador per a unes vistes prèvies en directe que responen a l'instant. Molt recomanat pel seu rendiment.",
       "wgpuLabel": "Activar la renderització directa WGPU",
       "workerThreads": "Fils de treball per a les miniatures",
@@ -2269,6 +2319,7 @@
         "mediapipe": "Pels models ràpids de punts facials i segmentació que impulsen les màscares de cara amb IA.",
         "negpy": "Per la inspiració que hi ha darrere de la lògica de conversió de negatius.",
         "nind": "Per proporcionar els models d'IA que impulsen les capacitats de reducció de soroll per IA a RapidRAW.",
+        "span": "Pel model d'IA base de RapidRes, l'ampliació 2x amb IA de RapidRAW, ajustat per RapidRAW al seu propi processament RAW (de Philip Hofmann, CC BY 4.0).",
         "rawler": "Per l'excel·lent component de Rust que proporciona la base per al processament de fitxers RAW en aquest projecte.",
         "sam2": "Per proporcionar el model de base utilitzat per a les capacitats de detecció de subjectes per IA.",
         "spektrafilm": "Per les LUTs d'emulació de pel·lícula basades en espectres, d'Andrea Volpato, que impulsen les emulacions integrades de RapidRAW. Amb llicència CC BY-SA 4.0.",

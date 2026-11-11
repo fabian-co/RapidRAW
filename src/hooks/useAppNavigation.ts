@@ -11,6 +11,7 @@ import { useSettingsStore } from '../store/useSettingsStore';
 import { Album, AlbumItem, Invokes, LibraryViewMode, ImageFile, ImageFlag } from '../components/ui/AppProperties';
 import { INITIAL_ADJUSTMENTS, normalizeLoadedAdjustments } from '../utils/adjustments';
 import { globalImageCache } from '../utils/ImageLRUCache';
+import { decodeImage } from '../utils/decodeImage';
 import { debouncedSave, debouncedSetHistory } from './useEditorActions';
 import { clearLibrarySelection } from './useLibraryActions';
 import { computeSortedLibrary } from './useSortedLibrary';
@@ -197,6 +198,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
       const { selectedImage, isSliderDragging, resetHistory, setEditor } = useEditorStore.getState();
       const { setLibrary } = useLibraryStore.getState();
       const { setUI } = useUIStore.getState();
+      const wasEditorVisible = useUIStore.getState().activeView === 'editor';
 
       if (openInEditor) {
         setUI({ activeView: 'editor' });
@@ -217,19 +219,22 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
 
       const cached = globalImageCache.get(path);
       const isFrontendCached = Boolean(cached && cached.selectedImage?.isReady);
-      const isCachedInBackend = isFrontendCached
+      const canKeepWgpuLive =
+        useSettingsStore.getState().appSettings?.useWgpuRenderer !== false &&
+        wasEditorVisible &&
+        useEditorStore.getState().wgpuPhase === 'live';
+      const isCachedInBackend = canKeepWgpuLive
         ? await invoke<boolean>('is_image_cached', { path }).catch(() => false)
         : false;
 
       if (generation !== imageSelectGeneration) return;
 
-      const hasDifferentResolution =
-        cached &&
-        (useEditorStore.getState().originalSize.width !== cached.originalSize.width ||
-          useEditorStore.getState().originalSize.height !== cached.originalSize.height);
+      const keepWgpuLive = canKeepWgpuLive && isCachedInBackend && useEditorStore.getState().wgpuPhase === 'live';
 
-      if (!isCachedInBackend || hasDifferentResolution) {
-        setEditor({ hasRenderedFirstFrame: false });
+      if (!keepWgpuLive) {
+        await decodeImage((isFrontendCached && cached?.finalPreviewUrl) || cachedMedium);
+        if (generation !== imageSelectGeneration) return;
+        setEditor({ wgpuPhase: 'hidden' });
       }
 
       selectedImagePathRef.current = path;
@@ -266,7 +271,6 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
             thumbnailUrl: cachedMedium || cached.selectedImage.thumbnailUrl,
           },
           originalSize: cached.originalSize,
-          previewSize: cached.previewSize,
           histogram: cached.histogram,
           waveform: cached.waveform,
           finalPreviewUrl: cached.finalPreviewUrl,
@@ -334,7 +338,6 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
           width: 0,
         },
         originalSize: { width: 0, height: 0 },
-        previewSize: { width: 0, height: 0 },
         histogram: null,
         waveform: null,
         uncroppedAdjustedPreviewUrl: null,

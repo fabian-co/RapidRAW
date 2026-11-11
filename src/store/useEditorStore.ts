@@ -1,5 +1,6 @@
 import { RefObject } from 'react';
 import { create } from 'zustand';
+import debounce from 'lodash.debounce';
 import {
   Adjustments,
   INITIAL_ADJUSTMENTS,
@@ -39,6 +40,8 @@ interface BaseRenderSize extends ImageDimensions {
   offsetY: number;
 }
 
+export type WgpuPhase = 'hidden' | 'arming' | 'live';
+
 interface EditorState {
   // Core Image & Adjustments
   selectedImage: SelectedImage | null;
@@ -69,10 +72,9 @@ interface EditorState {
   // Interaction State
   isSliderDragging: boolean;
   speedEditTarget: RefObject<SpeedEditTarget | null> | null;
-  isSpeedEditHeld: boolean;
+  isSpeedEditActive: boolean;
   zoom: number;
   displaySize: ImageDimensions;
-  previewSize: ImageDimensions;
   baseRenderSize: BaseRenderSize;
   originalSize: ImageDimensions;
 
@@ -101,8 +103,9 @@ interface EditorState {
   isGeneratingAiMask: boolean;
   isGeneratingAi: boolean;
   aiDenoiseProgress: Record<string, number>;
+  aiUpscaleProgress: Record<string, number>;
   isAIConnectorConnected: boolean;
-  hasRenderedFirstFrame: boolean;
+  wgpuPhase: WgpuPhase;
   patchesSentToBackend: Set<string>;
 
   // Clipboard
@@ -122,6 +125,10 @@ interface EditorState {
   resetHistory: (initialState: Adjustments) => void;
   goToHistoryIndex: (index: number) => void;
 }
+
+export const debouncedSetHistory = debounce((newAdj: Adjustments, label?: string) => {
+  useEditorStore.getState().pushHistory(newAdj, label);
+}, 500);
 
 type CanvasToolState = Pick<
   EditorState,
@@ -158,7 +165,7 @@ export const useEditorStore = create<EditorState>((set) => ({
 
   isSliderDragging: false,
   speedEditTarget: null,
-  isSpeedEditHeld: false,
+  isSpeedEditActive: false,
   interactivePatch: null,
   activeMaskContainerId: null,
   activeMaskId: null,
@@ -167,7 +174,6 @@ export const useEditorStore = create<EditorState>((set) => ({
 
   zoom: 1,
   displaySize: { width: 0, height: 0 },
-  previewSize: { width: 0, height: 0 },
   baseRenderSize: { width: 0, height: 0, offsetX: 0, offsetY: 0, containerWidth: 0, containerHeight: 0 },
   originalSize: { width: 0, height: 0 },
 
@@ -187,7 +193,7 @@ export const useEditorStore = create<EditorState>((set) => ({
 
   copiedSectionAdjustments: null,
   copiedMask: null,
-  brushSettings: { size: 50, feather: 50, tool: ToolType.Brush },
+  brushSettings: { size: 100, feather: 50, tool: ToolType.Brush },
   copiedAdjustments: null,
 
   activePresets: [],
@@ -197,8 +203,9 @@ export const useEditorStore = create<EditorState>((set) => ({
   isAIConnectorConnected: false,
   isGeneratingAi: false,
   aiDenoiseProgress: {},
+  aiUpscaleProgress: {},
   isMaskControlHovered: false,
-  hasRenderedFirstFrame: false,
+  wgpuPhase: 'hidden',
   patchesSentToBackend: new Set<string>(),
 
   setEditor: (updater) => set((state) => (typeof updater === 'function' ? updater(state) : updater)),
@@ -216,23 +223,27 @@ export const useEditorStore = create<EditorState>((set) => ({
       return { history: newHistory, historyLabels: newLabels, historyIndex: newHistory.length - 1 };
     }),
 
-  undo: () =>
+  undo: () => {
+    debouncedSetHistory.flush();
     set((state) => {
       if (state.historyIndex > 0) {
         const newIndex = state.historyIndex - 1;
         return { historyIndex: newIndex, adjustments: state.history[newIndex] };
       }
       return state;
-    }),
+    });
+  },
 
-  redo: () =>
+  redo: () => {
+    debouncedSetHistory.flush();
     set((state) => {
       if (state.historyIndex < state.history.length - 1) {
         const newIndex = state.historyIndex + 1;
         return { historyIndex: newIndex, adjustments: state.history[newIndex] };
       }
       return state;
-    }),
+    });
+  },
 
   resetHistory: (initialState) =>
     set((state) => ({
@@ -252,11 +263,13 @@ export const useEditorStore = create<EditorState>((set) => ({
         : {}),
     })),
 
-  goToHistoryIndex: (index) =>
+  goToHistoryIndex: (index) => {
+    debouncedSetHistory.flush();
     set((state) => {
       if (index >= 0 && index < state.history.length) {
         return { historyIndex: index, adjustments: state.history[index] };
       }
       return state;
-    }),
+    });
+  },
 }));

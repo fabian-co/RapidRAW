@@ -18,7 +18,6 @@ use crate::app_state::AppState;
 use crate::cache_utils::GEOMETRY_KEYS;
 use crate::effect_maps::{EffectMapKind, is_map_reference, is_map_valid_for};
 use crate::file_management::{parse_virtual_path, read_file_mapped};
-use crate::image_processing::is_effect_enabled;
 
 const JOURNAL_FILE: &str = "ai_jobs.json";
 const MAX_ATTEMPTS: u32 = 3;
@@ -122,6 +121,7 @@ impl MaskKind {
 
 enum Job {
     Denoise(DenoiseMethod),
+    Upscale,
     EffectMap(EffectMapKind),
     Mask {
         sub_mask_id: String,
@@ -134,6 +134,7 @@ impl Job {
     fn kind_label(&self) -> &'static str {
         match self {
             Job::Denoise(_) => "denoise",
+            Job::Upscale => "upscale",
             Job::EffectMap(EffectMapKind::Depth) => "depthMap",
             Job::EffectMap(EffectMapKind::Normal) => "normalMap",
             Job::Mask { kind, .. } => match kind {
@@ -225,10 +226,11 @@ fn ai_sub_masks(adjustments: &Value) -> impl Iterator<Item = (MaskKind, &Value)>
 pub fn has_ai_results(adjustments: &Value) -> bool {
     ai_sub_masks(adjustments).next().is_some()
         || adjustments["aiDenoiseEnabled"].as_bool().unwrap_or(false)
+        || adjustments["aiUpscaleEnabled"].as_bool().unwrap_or(false)
         || EffectMapKind::ALL
             .iter()
-            .flat_map(|map| map.adjustment_keys())
-            .any(|(_, enabled_key, _)| adjustments[*enabled_key].as_bool().unwrap_or(false))
+            .flat_map(|map| map.uses())
+            .any(|map_use| map_use.is_requested(adjustments))
 }
 
 fn sub_mask_id(sub_mask: &Value) -> Option<&str> {
@@ -244,15 +246,17 @@ fn plan(adjustments: &Value, path: &str, source_id: &str) -> Vec<Job> {
     {
         jobs.push(Job::Denoise(denoise_method));
     }
+    if crate::ai_upscale::is_enabled(adjustments)
+        && !crate::ai_upscale::has_cached_entry(path, adjustments)
+    {
+        jobs.push(Job::Upscale);
+    }
 
     for map in EffectMapKind::ALL {
-        let needed = map
-            .adjustment_keys()
-            .iter()
-            .any(|(tool, enabled_key, map_key)| {
-                is_effect_enabled(adjustments, tool, enabled_key)
-                    && !is_map_valid_for(&adjustments[*map_key], map, source_id)
-            });
+        let needed = map.uses().iter().any(|map_use| {
+            map_use.is_enabled(adjustments)
+                && !is_map_valid_for(&adjustments[map_use.map_key], map, source_id)
+        });
         if needed {
             jobs.push(Job::EffectMap(map));
         }
@@ -395,18 +399,18 @@ pub fn reconcile_ai_results(
     }
 
     for map in EffectMapKind::ALL {
-        for (_, _, map_key) in map.adjustment_keys() {
-            let Some(value) = incoming.get(*map_key) else {
+        for map_key in map.uses().iter().map(|map_use| map_use.map_key) {
+            let Some(value) = incoming.get(map_key) else {
                 continue;
             };
             let trusted = trust_unstamped || is_map_reference(value);
             if trusted && is_map_valid_for(value, map, source_id) {
                 continue;
             }
-            if is_map_valid_for(&existing[*map_key], map, source_id) {
-                incoming[*map_key] = existing[*map_key].clone();
+            if is_map_valid_for(&existing[map_key], map, source_id) {
+                incoming[map_key] = existing[map_key].clone();
             } else if !value.is_null() {
-                incoming[*map_key] = Value::Null;
+                incoming[map_key] = Value::Null;
                 stripped = true;
             }
         }
@@ -466,6 +470,12 @@ enum Outcome {
 }
 
 impl Queue {
+    fn clear_current(&mut self, path: &str) {
+        if self.status.current.as_ref().is_some_and(|c| c.path == path) {
+            self.status.current = None;
+        }
+    }
+
     fn next_path(&self, open_path: Option<String>) -> Option<String> {
         let mut ready = self
             .pending
@@ -658,14 +668,7 @@ fn finish_path(app_handle: &AppHandle, path: &str, result: Result<Outcome, Strin
         queue.processing = None;
         requeue = std::mem::take(&mut queue.requeue_processing);
     }
-    if queue
-        .status
-        .current
-        .as_ref()
-        .is_some_and(|c| c.path == path)
-    {
-        queue.status.current = None;
-    }
+    queue.clear_current(path);
     let Some(pos) = queue.pending.iter().position(|p| p == path) else {
         emit_status(app_handle, &mut queue);
         return;
@@ -677,7 +680,7 @@ fn finish_path(app_handle: &AppHandle, path: &str, result: Result<Outcome, Strin
         Ok(Outcome::Interrupted) => queue.pending.push_front(path.to_string()),
         Ok(Outcome::Deferred) => {
             queue.pending.push_back(path.to_string());
-            if crate::ai_denoise::is_generating(path) {
+            if crate::ai_denoise::is_generating(path) || crate::ai_upscale::is_generating(path) {
                 queue.deferred.insert(path.to_string());
             }
         }
@@ -833,6 +836,13 @@ fn open_image_path(app_handle: &AppHandle) -> Option<String> {
         .map(|loaded| loaded.path.clone())
 }
 
+struct JobRun {
+    outcome: Outcome,
+    results: JobResults,
+    generated_any: bool,
+    error: Option<String>,
+}
+
 fn process_path(
     app_handle: &AppHandle,
     path: &str,
@@ -845,15 +855,95 @@ fn process_path(
     let source_id = source_id(&source_path).ok_or("Unable to read the source image")?;
     let adjustments = crate::exif_processing::load_sidecar(&sidecar_path).adjustments;
 
-    let jobs = plan(&adjustments, path, &source_id);
-    if jobs.is_empty() {
-        return Ok(Outcome::Finished);
+    let run = run_jobs(
+        app_handle,
+        path,
+        &adjustments,
+        &source_id,
+        interrupt_generation,
+    )?;
+
+    if !run.results.sub_masks.is_empty() || !run.results.maps.is_empty() {
+        commit_results(app_handle, path, &source_id, run.results)?;
     }
 
+    if run.generated_any {
+        let state = app_handle.state::<AppState>();
+        crate::file_management::add_to_thumbnail_queue(&state, 1, app_handle);
+        let settings = crate::app_settings::load_settings(app_handle.clone()).unwrap_or_default();
+        crate::file_management::regenerate_thumbnails(
+            std::iter::once(path.to_string()),
+            app_handle,
+            &settings,
+            true,
+        );
+    }
+
+    match run.error {
+        Some(error) => Err(error),
+        None => Ok(run.outcome),
+    }
+}
+
+pub fn resolve_detached(
+    app_handle: &AppHandle,
+    path: &str,
+    adjustments: &mut Value,
+) -> Result<(), String> {
+    let (source_path, sidecar_path) = parse_virtual_path(path);
+    if !has_ai_results(adjustments) || !source_path.exists() {
+        return Ok(());
+    }
+    let source_id = source_id(&source_path).ok_or("Unable to read the source image")?;
+    let existing = crate::exif_processing::load_sidecar(&sidecar_path).adjustments;
+    reconcile_ai_results(adjustments, &existing, &source_id, false);
+
+    let result = {
+        let _lane = JOBS.lane.lock().unwrap_or_else(|e| e.into_inner());
+        loop {
+            let run = match run_jobs(app_handle, path, adjustments, &source_id, None) {
+                Ok(run) => run,
+                Err(error) => break Err(error),
+            };
+            apply_results(adjustments, &source_id, &run.results);
+            if let Some(error) = run.error {
+                break Err(error);
+            }
+            if !matches!(run.outcome, Outcome::Deferred) {
+                break Ok(());
+            }
+            std::thread::sleep(std::time::Duration::from_millis(200));
+        }
+    };
+
+    let mut queue = queue();
+    queue.clear_current(path);
+    emit_status(app_handle, &mut queue);
+    result
+}
+
+fn run_jobs(
+    app_handle: &AppHandle,
+    path: &str,
+    adjustments: &Value,
+    source_id: &str,
+    interrupt_generation: Option<u64>,
+) -> Result<JobRun, String> {
+    let mut results = JobResults::default();
+    let jobs = plan(adjustments, path, source_id);
+    if jobs.is_empty() {
+        return Ok(JobRun {
+            outcome: Outcome::Finished,
+            results,
+            generated_any: false,
+            error: None,
+        });
+    }
+
+    let source_path = parse_virtual_path(path).0;
     let base = decode_source(app_handle, &source_path)?;
     let is_raw = crate::formats::is_raw_file(&source_path);
     let mut warped_image: Option<DynamicImage> = None;
-    let mut results = JobResults::default();
     let mut errors = Vec::new();
     let mut generated_any = false;
     let mut outcome = Outcome::Finished;
@@ -888,17 +978,26 @@ fn process_path(
                     result => result.map(|_| ()),
                 }
             }
+            Job::Upscale => {
+                match crate::ai_upscale::generate_for_base(app_handle, path, &base, adjustments) {
+                    Ok(false) => {
+                        outcome = Outcome::Deferred;
+                        continue;
+                    }
+                    result => result.map(|_| ()),
+                }
+            }
             Job::EffectMap(map) => {
                 let source_image = crate::mask_generation::build_converted_source_image(
                     &base,
                     is_raw,
-                    &adjustments,
+                    adjustments,
                 );
                 tauri::async_runtime::block_on(ai_commands::generate_effect_map(
                     app_handle,
                     *map,
                     &source_image,
-                    &source_id,
+                    source_id,
                 ))
                 .map(|reference| results.maps.push((*map, reference)))
             }
@@ -906,16 +1005,21 @@ fn process_path(
                 sub_mask_id, kind, ..
             } => {
                 let warped = warped_image.get_or_insert_with(|| {
-                    crate::build_ai_source_image(&base, is_raw, &geometry_adjustments(&adjustments))
+                    crate::build_ai_source_image(
+                        &base,
+                        is_raw,
+                        path,
+                        &geometry_adjustments(adjustments),
+                    )
                 });
                 generate_mask(
                     app_handle,
                     path,
-                    &adjustments,
+                    adjustments,
                     sub_mask_id,
                     *kind,
                     warped,
-                    &source_id,
+                    source_id,
                 )
                 .map(|(original, result, no_result)| {
                     if let Some(no_result) = no_result {
@@ -935,26 +1039,12 @@ fn process_path(
     drop(warped_image);
     drop(base);
 
-    if !results.sub_masks.is_empty() || !results.maps.is_empty() {
-        commit_results(app_handle, path, &source_id, results)?;
-    }
-
-    if generated_any {
-        let state = app_handle.state::<AppState>();
-        crate::file_management::add_to_thumbnail_queue(&state, 1, app_handle);
-        let settings = crate::app_settings::load_settings(app_handle.clone()).unwrap_or_default();
-        crate::file_management::regenerate_thumbnails(
-            std::iter::once(path.to_string()),
-            app_handle,
-            &settings,
-            true,
-        );
-    }
-
-    match errors.into_iter().next() {
-        Some(error) => Err(error),
-        None => Ok(outcome),
-    }
+    Ok(JobRun {
+        outcome,
+        results,
+        generated_any,
+        error: errors.into_iter().next(),
+    })
 }
 
 fn generate_mask(
@@ -1089,12 +1179,12 @@ fn apply_results(
     let mut committed_maps = serde_json::Map::new();
 
     for (map, reference) in &results.maps {
-        for (tool, enabled_key, map_key) in map.adjustment_keys() {
-            if is_effect_enabled(adjustments, tool, enabled_key)
-                && !is_map_valid_for(&adjustments[*map_key], *map, source_id)
+        for map_use in map.uses() {
+            if map_use.is_enabled(adjustments)
+                && !is_map_valid_for(&adjustments[map_use.map_key], *map, source_id)
             {
-                adjustments[*map_key] = json!(reference);
-                committed_maps.insert(map_key.to_string(), json!(reference));
+                adjustments[map_use.map_key] = json!(reference);
+                committed_maps.insert(map_use.map_key.to_string(), json!(reference));
             }
         }
     }

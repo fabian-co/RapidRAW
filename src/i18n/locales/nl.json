@@ -92,6 +92,7 @@
         "highlights": "Hooglichten",
         "hue": "Kleurtoon",
         "mix": "Z/W-mix",
+        "mixPickerTooltip": "Z/W-mix-pipet: klik en sleep omhoog of omlaag op de foto",
         "saturation": "Verzadiging",
         "shadows": "Schaduwen",
         "strength": "Sterkte",
@@ -150,6 +151,8 @@
       "aiDenoiseColor": "Kleurruis",
       "classicDenoise": "Klassieke ruisonderdrukking",
       "aiDenoiseDetail": "Detail",
+      "aiUpscale": "RapidRes 2x",
+      "aiUpscaleDetail": "Detail",
       "blueYellow": "Blauw/Geel",
       "centre": "Centrum",
       "chromaticAberration": "Chromatische aberratie",
@@ -165,6 +168,7 @@
       "negativeGreen": "Groen",
       "negativeRed": "Rood",
       "noiseReduction": "Ruisonderdrukking",
+      "superResolution": "RapidRes",
       "presence": "Presentie",
       "redCyan": "Rood/Cyaan",
       "sharpening": "Verscherping",
@@ -222,7 +226,25 @@
       "roundness": "Rondheid",
       "size": "Grootte",
       "spatial": "Ruimtelijk",
-      "vignette": "Vignet"
+      "vignette": "Vignet",
+      "motionBlur": "Bewegingsonscherpte",
+      "motionBlurAngle": "Hoek",
+      "motionBlurDepth": "Diepte",
+      "motionBlurHighlights": "Hoge lichten",
+      "motionBlurLayer": "Beweging",
+      "motionBlurLayers": {
+        "auto": "Automatisch",
+        "panning": "Meetrekken",
+        "subject": "Bewegend onderwerp",
+        "uniform": "Gelijkmatig"
+      },
+      "motionBlurType": "Type",
+      "motionBlurTypes": {
+        "linear": "Lineair",
+        "zoom": "Zoom",
+        "spin": "Draaiing",
+        "smooth": "Zacht"
+      }
     }
   },
   "contextMenus": {
@@ -305,6 +327,8 @@
       "redo": "Opnieuw",
       "removeBlackWhite": "Zwart-wit verwijderen",
       "removeDenoise": "Ruisonderdrukking verwijderen",
+      "superResolution": "RapidRes (2x)",
+      "removeSuperResolution": "RapidRes verwijderen",
       "removeNegativeConversion": "Negatiefconversie verwijderen",
       "resetAdjustments": "Aanpassingen herstellen",
       "stitchPanorama": "Panorama samenvoegen",
@@ -369,6 +393,8 @@
       "deleteSelected": "Alleen geselecteerde verwijderen",
       "denoise_one": "Ruis verwijderen",
       "denoise_other": "Ruis verwijderen",
+      "superResolution_one": "RapidRes (2x)",
+      "superResolution_other": "RapidRes (2x)",
       "duplicateImage": "Afbeelding dupliceren",
       "enable": "Inschakelen",
       "exportImage_one": "Afbeelding exporteren",
@@ -463,6 +489,15 @@
         "feather": "Penseelrandvervaging",
         "size": "Penseelgrootte"
       },
+      "cloneHeal": {
+        "cloneTooltip": "Kopieert de bron exact, inclusief helderheid en kleur",
+        "dragSource": "Sleep om de bron te verplaatsen",
+        "healTooltip": "Kopieert de textuur van de bron en past die aan de omliggende helderheid en kleur aan",
+        "hintActive": "Sleep de bronomtrek om te kiezen waar de pixels vandaan komen. Elke nieuwe streek wordt een eigen plek. Houd Shift ingedrukt om aan deze toe te voegen.",
+        "hintEmpty": "Schilder over een vlek, draad of storend element. Er wordt automatisch een passende bron gevonden.",
+        "mode": "Modus",
+        "newSource": "Andere bron zoeken"
+      },
       "comingSoon": "Binnenkort beschikbaar",
       "connection": {
         "backendLabel": "AI-backend:",
@@ -483,6 +518,7 @@
       "createNewTitle": "Nieuwe generatieve bewerking maken",
       "createNewTooltip": "Nieuwe {{name}} bewerking maken",
       "denoising": "AI-ruisonderdrukking wordt uitgevoerd...",
+      "upscaling": "RapidRes wordt uitgevoerd...",
       "dropzoneText": "Hier neerzetten om een nieuwe bewerking te maken",
       "editSettingsTitle": "Bewerkingsinstellingen",
       "editsTitle": "Bewerkingen",
@@ -793,8 +829,7 @@
       "toggleAnalyticsTooltip": "Analytische weergave aan/uit",
       "tooltips": {
         "addToCurrent": "{{name}} toevoegen aan huidig masker of nieuw masker maken (rechtermuisknop)",
-        "createNew": "Nieuw {{name}} masker maken",
-        "selectNewSourcePoint": "{{modifier}} + klik om een nieuw bronpunt te selecteren"
+        "createNew": "Nieuw {{name}} masker maken"
       }
     },
     "metadata": {
@@ -937,6 +972,9 @@
   "export": {
     "advanced": {
       "exportMasks": "Maskers exporteren als afzonderlijke bestanden",
+      "exportOriginal": "Ook het origineel exporteren",
+      "originalCrop": "Uitsnede toepassen",
+      "originalKeepExposure": "Belichting behouden",
       "preserveFolders": "Mapstructuur behouden",
       "preserveTimestamps": "Bestandstijdstempels instellen vanuit EXIF-opnamedatum",
       "title": "Exportinstellingen"
@@ -1131,6 +1169,7 @@
       "failed": "Mislukt ({{failedCount}})",
       "kinds": {
         "denoise": "AI-ruisonderdrukking",
+        "upscale": "RapidRes-vergroting",
         "depthMap": "Diepte analyseren",
         "depthMask": "Dieptemasker maken",
         "faceMask": "Gezichtsmasker maken",
@@ -1464,6 +1503,7 @@
       "linear": "Lineair",
       "liquify": "Uitvloeien",
       "luminance": "Luminantie",
+      "matchBrush": "Overeenkomstpenseel",
       "others": "Overige",
       "quickErase": "Snel wissen",
       "quickEraser": "Snel wissen",
@@ -1528,6 +1568,7 @@
       "descReplace": "Overschrijft alle geselecteerde instellingen en herstelt de overige naar standaardwaarden.",
       "groups": {
         "aiDenoise": "AI-ruisonderdrukking",
+        "aiUpscale": "RapidRes",
         "blackWhite": "Zwart-wit",
         "chromaticAberration": "Chromatische aberratie",
         "clarityDehaze": "Contrast en nevelreductie",
@@ -1542,6 +1583,7 @@
         "halationGlow": "Halatie & gloed",
         "hueShift": "Globale kleurtoonwijziging",
         "lensBlur": "Lensvervaging",
+        "motionBlur": "Bewegingsonscherpte",
         "lensCorrection": "Lenscorrectie",
         "lut": "LUT",
         "masks": "Maskers",
@@ -1685,7 +1727,6 @@
       "selectManufacturer": "Fabrikant selecteren",
       "title": "Lenscorrectie",
       "vignetting": "Vignettering",
-      "waitingAutoDetect": "Wachten op automatische detectie...",
       "zoomInTooltip": "Inzoomen",
       "zoomOutTooltip": "Uitzoomen"
     },
@@ -1785,7 +1826,7 @@
           "fine": "Shift voor fijn"
         },
         "keys": {
-          "hold": "Vasthouden",
+          "hold": "Tikken / Houden",
           "previousImage": "Vorige afb.",
           "nextImage": "Volgende afb.",
           "reset": "Herstellen",
@@ -1818,6 +1859,7 @@
       "limit": "Limiet",
       "modals": {
         "aiDenoiseMessage": "Weet je zeker dat je de AI-ruisonderdrukkingscache wilt wissen?\n\nAfbeeldingen met AI-ruisonderdrukking ingeschakeld moeten opnieuw worden verwerkt, wat per afbeelding enkele minuten kan duren.",
+        "aiUpscaleMessage": "Weet je zeker dat je de RapidRes-cache wilt wissen?\n\nAfbeeldingen met RapidRes ingeschakeld moeten opnieuw worden vergroot.",
         "aiMapsMessage": "Weet je zeker dat je de diepte- en normal maps wilt wissen?\n\nAfbeeldingen met lensvervaging, mist of herbelichting maken hun maps opnieuw aan wanneer ze weer worden geopend.",
         "aiMessage": "Weet u zeker dat u alle door AI gegenereerde tags van alle afbeeldingen in alle actieve hoofdmappen wilt verwijderen?\n\nDit heeft geen invloed op door gebruikers toegevoegde tags. Deze actie kan niet ongedaan worden gemaakt.",
         "allMessage": "Weet u zeker dat u alle door AI gegenereerde en door gebruikers toegevoegde tags van alle afbeeldingen in alle actieve hoofdmappen wilt verwijderen?\n\nDeze actie kan niet ongedaan worden gemaakt.",
@@ -1845,6 +1887,7 @@
       "show": "Tonen",
       "statuses": {
         "aiDenoiseSuccess": "AI-ruisonderdrukkingscache succesvol gewist.",
+        "aiUpscaleSuccess": "RapidRes-cache succesvol gewist.",
         "aiSuccess": "{{count}} bestanden bijgewerkt. AI-tags verwijderd.",
         "aiSuccess_one": "{{count}} bestand bijgewerkt. AI-tags verwijderd.",
         "aiSuccess_other": "{{count}} bestanden bijgewerkt. AI-tags verwijderd.",
@@ -1861,6 +1904,8 @@
       "storage": {
         "aiDenoise": "AI-ruisonderdrukking",
         "aiDenoiseDesc": "Gecachete ruisonderdrukkingsresultaten.",
+        "aiUpscale": "RapidRes",
+        "aiUpscaleDesc": "Gecachete 2x-vergrotingen van RapidRes.",
         "aiMaps": "Diepte- & normal maps",
         "aiMapsDesc": "Gebruikt door lensvervaging, mist en herbelichting.",
         "immich": "Immich",
@@ -1909,6 +1954,11 @@
       "title": "Algemene instellingen",
       "toolFocusMode": "Toolfocusmodus",
       "toolFocusModeDesc": "Vouw automatisch de overige gereedschappen in een paneel samen wanneer je er één uitvouwt.",
+      "uiScale": "Interfaceschaal",
+      "uiScaleCompact": "Compact",
+      "uiScaleDefault": "Standaard",
+      "uiScaleDesc": "Maak de interface kleiner of groter, los van de schermschaal van het systeem. Compacte formaten passen beter op kleine laptopschermen.",
+      "uiScaleLarge": "Groot",
       "xmpSync": "XMP-metadatasynchronisatie",
       "xmpSyncDesc": "Synchroniseer beoordelingen, kleurlabels en tags naar standaard XMP-sidecar-bestanden voor compatibiliteit met andere foto-editors."
     },
@@ -2174,15 +2224,14 @@
       "smallThumbnailRes": "Rasterminiatuurresolutie",
       "smallThumbnailResDesc": "Resolutie van miniaturen weergegeven in het bibliotheekoverzicht.",
       "staticDesc": "De editor rendert de afbeelding op een vaste resolutie. Deze modus is het snelst en meest consistent, waardoor het ideaal is voor minder krachtige hardware waar vloeiende prestaties prioriteit hebben boven pixelperfecte zoom.",
-      "staticPreviewRes": "Statische voorbeeldresolutie",
-      "staticPreviewResDesc": "Stelt de resolutie in voor statische voorbeelden zoals bijsnijdmodus, lenscorrectie en perspectief-tools. Heeft geen invloed op het hoofdeditorvoorbeeld.",
       "threads": "Threads",
       "thumbnailRes": "Miniatuurresolutie",
       "thumbnailResDesc": "Bepaalt de resolutie van gegenereerde bibliotheekminiaturen. Hogere waarden produceren scherpere afbeeldingen tijdens het laden.",
       "title": "Verwerkingsmotor",
       "wgpu": "WGPU directe rendering",
       "wgpuDescAndroid": "Omzeilt browsercodering voor direct responsieve live voorbeelden. (Uitgeschakeld op Android: native WGPU-surface creatie wordt momenteel niet ondersteund naast de mobiele webweergave.)",
-      "wgpuDescLinux": "Omzeilt browsercodering voor direct responsieve live voorbeelden. (Uitgeschakeld op Linux: Tauri gebruikt GTK voor webweergaven, wat conflicteert met WGPU op hetzelfde X11-surface en flikkering veroorzaakt.)",
+      "wgpuDescLinuxExperimental": "Experimenteel op Linux en mogelijk instabiel.",
+      "wgpuDescLinuxX11": "Niet beschikbaar op X11.",
       "wgpuDescRecommended": "Omzeilt browsercodering voor direct responsieve live voorbeelden. Sterk aanbevolen voor prestaties.",
       "wgpuLabel": "Directe WGPU-rendering inschakelen",
       "workerThreads": "Miniatuurwerkerthreads",
@@ -2224,6 +2273,7 @@
         "mediapipe": "Voor de snelle gezichtslandmark- en segmentatiemodellen achter de AI-gezichtsmaskers.",
         "negpy": "Voor de inspiratie achter de negatief-omzetlogica.",
         "nind": "Voor het leveren van AI-modellen die de AI-ruisonderdrukkingmogelijkheden in RapidRAW aandrijven.",
+        "span": "Voor het basis-AI-model achter RapidRes, de 2x AI-vergroting van RapidRAW, door RapidRAW verfijnd op de eigen RAW-verwerking (door Philip Hofmann, CC BY 4.0).",
         "rawler": "Voor de uitstekende Rust-crate die de basis vormt voor RAW-bestandsverwerking in dit project.",
         "sam2": "Voor het leveren van het basismodel dat wordt gebruikt voor de AI-onderwerpdetectiemogelijkheden.",
         "spektrafilm": "Voor de spectraalgebaseerde filmemulatie-LUT's door Andrea Volpato, gebruikt voor de ingebouwde filmemulaties van RapidRAW. Gelicenseerd onder CC BY-SA 4.0.",

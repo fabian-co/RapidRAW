@@ -92,6 +92,7 @@
         "highlights": "Światła",
         "hue": "Odcień",
         "mix": "Mikser cz-b",
+        "mixPickerTooltip": "Pipeta miksera cz-b: kliknij i przeciągnij w górę lub w dół na zdjęciu",
         "saturation": "Nasycenie",
         "shadows": "Cienie",
         "strength": "Siła",
@@ -150,6 +151,8 @@
       "aiDenoiseColor": "Szum kolorów",
       "classicDenoise": "Klasyczne odszumianie",
       "aiDenoiseDetail": "Szczegóły",
+      "aiUpscale": "RapidRes 2x",
+      "aiUpscaleDetail": "Szczegóły",
       "blueYellow": "Niebieski/Żółty",
       "centre": "Środek",
       "chromaticAberration": "Aberracja chromatyczna",
@@ -165,6 +168,7 @@
       "negativeGreen": "Zielony",
       "negativeRed": "Czerwony",
       "noiseReduction": "Redukcja szumu",
+      "superResolution": "RapidRes",
       "presence": "Prezencja",
       "redCyan": "Czerwony/Cyjan",
       "sharpening": "Wyostrzanie",
@@ -222,7 +226,25 @@
       "roundness": "Zaokrąglenie",
       "size": "Rozmiar",
       "spatial": "Przestrzenne",
-      "vignette": "Winieta"
+      "vignette": "Winieta",
+      "motionBlur": "Rozmycie ruchu",
+      "motionBlurAngle": "Kąt",
+      "motionBlurDepth": "Głębia",
+      "motionBlurHighlights": "Światła",
+      "motionBlurLayer": "Ruch",
+      "motionBlurLayers": {
+        "auto": "Automatycznie",
+        "panning": "Panoramowanie",
+        "subject": "Ruchomy obiekt",
+        "uniform": "Jednolite"
+      },
+      "motionBlurType": "Typ",
+      "motionBlurTypes": {
+        "linear": "Liniowe",
+        "zoom": "Zoom",
+        "spin": "Obrót",
+        "smooth": "Wygładzenie"
+      }
     }
   },
   "contextMenus": {
@@ -307,6 +329,8 @@
       "redo": "Ponów",
       "removeBlackWhite": "Usuń konwersję czarno-białą",
       "removeDenoise": "Usuń odszumianie",
+      "superResolution": "RapidRes (2x)",
+      "removeSuperResolution": "Usuń RapidRes",
       "removeNegativeConversion": "Usuń konwersję negatywu",
       "resetAdjustments": "Resetuj ustawienia",
       "stitchPanorama": "Złóż panoramę",
@@ -393,6 +417,10 @@
       "denoise_many": "Odszumianie",
       "denoise_one": "Odszumianie",
       "denoise_other": "Odszumianie",
+      "superResolution_few": "RapidRes (2x)",
+      "superResolution_many": "RapidRes (2x)",
+      "superResolution_one": "RapidRes (2x)",
+      "superResolution_other": "RapidRes (2x)",
       "duplicateImage": "Duplikuj obraz",
       "enable": "Włącz",
       "exportImage_few": "Eksportuj {{count}} obrazy",
@@ -497,6 +525,15 @@
         "feather": "Wtapianie pędzla",
         "size": "Rozmiar pędzla"
       },
+      "cloneHeal": {
+        "cloneTooltip": "Kopiuje źródło dokładnie, łącznie z jasnością i kolorem",
+        "dragSource": "Przeciągnij, aby przesunąć źródło",
+        "healTooltip": "Kopiuje teksturę źródła i dopasowuje ją do jasności i koloru otoczenia",
+        "hintActive": "Przeciągnij obrys źródła, aby wybrać, skąd pochodzą piksele. Każde nowe pociągnięcie tworzy osobny obszar. Przytrzymaj Shift, aby dodać do tego.",
+        "hintEmpty": "Zamaluj plamkę, przewód lub rozpraszający element. Pasujące źródło zostanie znalezione automatycznie.",
+        "mode": "Tryb",
+        "newSource": "Znajdź inne źródło"
+      },
       "comingSoon": "Wkrótce",
       "connection": {
         "backendLabel": "Backend AI:",
@@ -517,6 +554,7 @@
       "createNewTitle": "Utwórz nową edycję generatywną",
       "createNewTooltip": "Utwórz nową edycję {{name}}",
       "denoising": "Trwa odszumianie AI...",
+      "upscaling": "Trwa RapidRes...",
       "dropzoneText": "Upuść tutaj, aby utworzyć nową edycję",
       "editSettingsTitle": "Ustawienia edycji",
       "editsTitle": "Edycje",
@@ -841,8 +879,7 @@
       "toggleAnalyticsTooltip": "Przełącz widok analityki",
       "tooltips": {
         "addToCurrent": "Dodaj {{name}} do bieżącej maski lub utwórz nową (Prawy przycisk)",
-        "createNew": "Utwórz nową maskę {{name}}",
-        "selectNewSourcePoint": "{{modifier}} + Kliknij, aby wybrać nowy punkt źródłowy"
+        "createNew": "Utwórz nową maskę {{name}}"
       }
     },
     "metadata": {
@@ -985,6 +1022,9 @@
   "export": {
     "advanced": {
       "exportMasks": "Eksportuj maski jako osobne pliki",
+      "exportOriginal": "Eksportuj również oryginał",
+      "originalCrop": "Zastosuj kadrowanie",
+      "originalKeepExposure": "Zachowaj ekspozycję",
       "preserveFolders": "Zachowaj strukturę folderów",
       "preserveTimestamps": "Ustaw datę modyfikacji pliku na podstawie daty wykonania (EXIF)",
       "title": "Ustawienia eksportu"
@@ -1183,6 +1223,7 @@
       "failed": "Nieudane ({{failedCount}})",
       "kinds": {
         "denoise": "Odszumianie AI",
+        "upscale": "Powiększanie RapidRes",
         "depthMap": "Analiza głębi",
         "depthMask": "Generowanie maski głębi",
         "faceMask": "Generowanie maski twarzy",
@@ -1528,6 +1569,7 @@
       "linear": "Liniowy",
       "liquify": "Skraplanie",
       "luminance": "Luminancja",
+      "matchBrush": "Pędzel dopasowania",
       "others": "Inne",
       "quickErase": "Szybkie wymazanie",
       "quickEraser": "Szybka gumka",
@@ -1592,6 +1634,7 @@
       "descReplace": "Nadpisuje wszystkie wybrane ustawienia, przywracając resztę do wartości domyślnych.",
       "groups": {
         "aiDenoise": "Odszumianie AI",
+        "aiUpscale": "RapidRes",
         "blackWhite": "Czarno-białe",
         "chromaticAberration": "Aberracja chromatyczna",
         "clarityDehaze": "Przejrzystość i Usuwanie mgły",
@@ -1606,6 +1649,7 @@
         "halationGlow": "Halacja i Poświata",
         "hueShift": "Globalne przesunięcie odcienia",
         "lensBlur": "Rozmycie obiektywu",
+        "motionBlur": "Rozmycie ruchu",
         "lensCorrection": "Korekcja obiektywu",
         "lut": "LUT",
         "masks": "Maski",
@@ -1757,7 +1801,6 @@
       "selectManufacturer": "Wybierz producenta",
       "title": "Korekcja obiektywu",
       "vignetting": "Winietowanie",
-      "waitingAutoDetect": "Oczekiwanie na automatyczne wykrycie...",
       "zoomInTooltip": "Przybliż",
       "zoomOutTooltip": "Oddal"
     },
@@ -1861,7 +1904,7 @@
           "fine": "Shift – precyzyjnie"
         },
         "keys": {
-          "hold": "Przytrzymaj",
+          "hold": "Stuknij / Trzymaj",
           "previousImage": "Poprz. zdjęcie",
           "nextImage": "Nast. zdjęcie",
           "reset": "Resetuj",
@@ -1894,6 +1937,7 @@
       "limit": "Limit",
       "modals": {
         "aiDenoiseMessage": "Czy na pewno chcesz wyczyścić pamięć podręczną odszumiania AI?\n\nZdjęcia z włączonym odszumianiem AI trzeba będzie odszumić ponownie, co może zająć kilka minut na zdjęcie.",
+        "aiUpscaleMessage": "Czy na pewno chcesz wyczyścić pamięć podręczną RapidRes?\n\nZdjęcia z włączonym RapidRes trzeba będzie powiększyć ponownie.",
         "aiMapsMessage": "Czy na pewno chcesz wyczyścić mapy głębi i normalnych?\n\nZdjęcia używające rozmycia obiektywu, mgły lub ponownego oświetlenia wygenerują mapy ponownie przy następnym otwarciu.",
         "aiMessage": "Czy na pewno chcesz usunąć wszystkie tagi generowane przez AI z wszystkich obrazów we wszystkich aktywnych folderach głównych?\n\nTo nie wpłynie na tagi dodane przez użytkownika. Tej akcji nie można cofnąć.",
         "allMessage": "Czy na pewno chcesz usunąć wszystkie tagi generowane przez AI i dodane przez użytkownika z wszystkich obrazów we wszystkich aktywnych folderach głównych?\n\nTej akcji nie można cofnąć.",
@@ -1921,6 +1965,7 @@
       "show": "Pokaż",
       "statuses": {
         "aiDenoiseSuccess": "Pamięć podręczna odszumiania AI została wyczyszczona.",
+        "aiUpscaleSuccess": "Pamięć podręczna RapidRes została wyczyszczona.",
         "aiSuccess": "Zaktualizowano {{count}} plików. Tagi AI usunięte.",
         "aiSuccess_few": "Zaktualizowano {{count}} pliki. Tagi AI usunięte.",
         "aiSuccess_many": "Zaktualizowano {{count}} plików. Tagi AI usunięte.",
@@ -1943,6 +1988,8 @@
       "storage": {
         "aiDenoise": "Odszumianie AI",
         "aiDenoiseDesc": "Zapisane wyniki odszumiania.",
+        "aiUpscale": "RapidRes",
+        "aiUpscaleDesc": "Zapisane powiększenia 2x RapidRes.",
         "aiMaps": "Mapy głębi i normalnych",
         "aiMapsDesc": "Używane przez rozmycie obiektywu, mgłę i ponowne oświetlenie.",
         "immich": "Immich",
@@ -1991,6 +2038,11 @@
       "title": "Ustawienia ogólne",
       "toolFocusMode": "Tryb skupienia na narzędziach",
       "toolFocusModeDesc": "Automatycznie zwija inne narzędzia w panelu, gdy rozwijasz jedno z nich.",
+      "uiScale": "Skala interfejsu",
+      "uiScaleCompact": "Kompaktowy",
+      "uiScaleDefault": "Domyślny",
+      "uiScaleDesc": "Zmniejsz lub powiększ interfejs niezależnie od skalowania ekranu w systemie. Kompaktowe rozmiary mieszczą więcej na małych ekranach laptopów.",
+      "uiScaleLarge": "Duży",
       "xmpSync": "Synchronizacja metadanych XMP",
       "xmpSyncDesc": "Synchronizuj oceny, etykiety kolorów i tagi do standardowych plików XMP w celu zachowania kompatybilności z innymi edytorami zdjęć."
     },
@@ -2260,15 +2312,14 @@
       "smallThumbnailRes": "Rozdzielczość miniatur w siatce",
       "smallThumbnailResDesc": "Rozdzielczość miniatur wyświetlanych w siatce biblioteki.",
       "staticDesc": "Edytor renderuje obraz w stałej rozdzielczości. Ten tryb jest najszybszy i najbardziej spójny, idealny dla słabszych komputerów, gdzie priorytetem jest płynne działanie a nie perfekcyjna jakość po zbliżeniu.",
-      "staticPreviewRes": "Rozdzielczość statycznego podglądu",
-      "staticPreviewResDesc": "Określa rozdzielczość dla statycznych podglądów, takich jak tryb kadrowania i narzędzia perspektywy. Nie wpływa to na podgląd głównego edytora.",
       "threads": "Wątki",
       "thumbnailRes": "Rozdzielczość miniatur",
       "thumbnailResDesc": "Decyduje o rozdzielczości generowanych miniatur w bibliotece. Wyższa wartość da ostrzejszy obraz po wczytaniu.",
       "title": "Silnik przetwarzania",
       "wgpu": "Bezpośrednie renderowanie WGPU",
       "wgpuDescAndroid": "Omija enkoder przeglądarki dla najszybszego podglądu. (Wyłączone na Androidzie: Tworzenie powierzchni WGPU obecnie nie jest obsługiwane wraz z WebView.)",
-      "wgpuDescLinux": "Omija enkoder przeglądarki. (Wyłączone na Linuksie: Tauri używa GTK dla WebView, co wchodzi w konflikt z WGPU na tej samej powierzchni X11, wywołując migotanie.)",
+      "wgpuDescLinuxExperimental": "Funkcja eksperymentalna w systemie Linux, może działać niestabilnie.",
+      "wgpuDescLinuxX11": "Niedostępne w X11.",
       "wgpuDescRecommended": "Omija kodowanie w przeglądarce pozwalając na natychmiastowe reakcje podglądu. Wysoce zalecane dla zachowania płynności.",
       "wgpuLabel": "Włącz bezpośrednie renderowanie WGPU",
       "workerThreads": "Liczba wątków miniatur",
@@ -2310,6 +2361,7 @@
         "mediapipe": "Za szybkie modele punktów charakterystycznych twarzy i segmentacji, które napędzają maski twarzy AI.",
         "negpy": "Za inspirację stojącą za rozwiązaniem do inwersji negatywów.",
         "nind": "Za dostarczenie modeli AI, które stanowią silnik odszumiający RapidRAW.",
+        "span": "Za bazowy model AI w RapidRes, powiększaniu 2x AI w RapidRAW, dostrojony przez RapidRAW do własnego przetwarzania RAW (autor Philip Hofmann, CC BY 4.0).",
         "rawler": "Za świetną bibliotekę w Rust, dostarczającą fundament dla przetwarzania plików RAW w tym projekcie.",
         "sam2": "Za dostarczenie bazowego modelu do wykrywania i wycinania obiektów za pomocą AI.",
         "spektrafilm": "Za oparte na danych spektralnych LUT-y emulacji filmu autorstwa Andrei Volpato, napędzające wbudowane emulacje filmowe RapidRAW. Licencja CC BY-SA 4.0.",

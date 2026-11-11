@@ -111,6 +111,10 @@ const DENOISE_URL: &str = "https://huggingface.co/CyberTimon/RapidRAW-Models/res
 const DENOISE_FILENAME: &str = "nind_denoise_utnet_684.onnx";
 const DENOISE_SHA256: &str = "ee3586279d514df557ff3f7dec6df37fafc51ba5d3a3435b2cc9ac2d9017e7fe";
 
+const UPSCALE_URL: &str = "https://huggingface.co/CyberTimon/RapidRAW-Models/resolve/main/2xBHI_small_span_rapidraw.onnx?download=true";
+const UPSCALE_FILENAME: &str = "2xBHI_small_span_rapidraw.onnx";
+const UPSCALE_SHA256: &str = "9d3a51deab2518cde257048180070b078840f2aa32326b8bf0e86f15f2a689a0";
+
 const LAMA_URL: &str =
     "https://huggingface.co/CyberTimon/RapidRAW-Models/resolve/main/lama_fp16.onnx?download=true";
 const LAMA_FILENAME: &str = "lama_fp16.onnx";
@@ -256,6 +260,12 @@ const DENOISE_ASSET: ModelAsset = ModelAsset {
     url: DENOISE_URL,
     sha256: Some(DENOISE_SHA256),
     name: "NIND Denoise Model",
+};
+const UPSCALE_ASSET: ModelAsset = ModelAsset {
+    filename: UPSCALE_FILENAME,
+    url: UPSCALE_URL,
+    sha256: Some(UPSCALE_SHA256),
+    name: "Super Resolution Model",
 };
 const LAMA_ASSET: ModelAsset = ModelAsset {
     filename: LAMA_FILENAME,
@@ -711,6 +721,7 @@ pub struct CachedDepthMap {
 pub struct AiState {
     pub models: Option<Arc<AiModels>>,
     pub denoise_model: Option<Arc<Mutex<Session>>>,
+    pub upscale_model: Option<Arc<Mutex<Session>>>,
     pub clip_models: Option<Arc<ClipModels>>,
     pub lama_model: Option<Arc<Mutex<Session>>>,
     pub normal_model: Option<Arc<Mutex<Session>>>,
@@ -726,6 +737,7 @@ impl AiState {
     pub fn release_sessions(&mut self) {
         self.models = None;
         self.denoise_model = None;
+        self.upscale_model = None;
         self.clip_models = None;
         self.lama_model = None;
         self.normal_model = None;
@@ -974,21 +986,18 @@ fn bilinear_sample(i: usize, scale: f32, n: usize) -> (usize, usize, f32) {
     (i0, i1, (f - i0 as f32).clamp(0.0, 1.0))
 }
 
-pub fn fast_color_guided_filter(
-    guide_hr: &RgbImage,
+pub fn color_guided_coefficients(
+    guide_lr: &RgbImage,
     mask_lr: &GrayImage,
     r: usize,
     eps: f32,
-) -> GrayImage {
-    let (hr_w, hr_h) = guide_hr.dimensions();
+) -> [Vec<f32>; 4] {
     let (lr_w, lr_h) = mask_lr.dimensions();
     let (w, h) = (lr_w as usize, lr_h as usize);
     let area = w * h;
 
-    let guide_lr = imageops::resize(guide_hr, lr_w, lr_h, FilterType::Triangle);
     let guide: [Vec<f32>; 3] =
         std::array::from_fn(|c| guide_lr.pixels().map(|p| p[c] as f32 / 255.0).collect());
-    drop(guide_lr);
     let p: Vec<f32> = mask_lr.as_raw().iter().map(|&v| v as f32 / 255.0).collect();
 
     let mut temp1 = vec![0.0; area];
@@ -1035,10 +1044,22 @@ pub fn fast_color_guided_filter(
         .collect();
     drop((mean_i, mean_p, mean_ip, mean_ii));
 
-    let mean_coefficients: [Vec<f32>; 4] = std::array::from_fn(|i| {
-        box_filter(&coefficients.iter().map(|c| c[i]).collect::<Vec<f32>>())
-    });
-    drop(coefficients);
+    std::array::from_fn(|i| box_filter(&coefficients.iter().map(|c| c[i]).collect::<Vec<f32>>()))
+}
+
+pub fn fast_color_guided_filter(
+    guide_hr: &RgbImage,
+    mask_lr: &GrayImage,
+    r: usize,
+    eps: f32,
+) -> GrayImage {
+    let (hr_w, hr_h) = guide_hr.dimensions();
+    let (lr_w, lr_h) = mask_lr.dimensions();
+    let (w, h) = (lr_w as usize, lr_h as usize);
+
+    let guide_lr = imageops::resize(guide_hr, lr_w, lr_h, FilterType::Triangle);
+    let mean_coefficients = color_guided_coefficients(&guide_lr, mask_lr, r, eps);
+    drop(guide_lr);
 
     let (hr_w, hr_h) = (hr_w as usize, hr_h as usize);
     let x_samples: Vec<(usize, usize, f32)> = (0..hr_w)
@@ -1306,6 +1327,48 @@ pub async fn get_or_init_denoise_model(
     Ok(denoise_model)
 }
 
+pub async fn get_or_init_upscale_model(
+    app_handle: &tauri::AppHandle,
+    ai_state_mutex: &Mutex<Option<AiState>>,
+    ai_init_lock: &TokioMutex<()>,
+) -> Result<Arc<Mutex<Session>>> {
+    if let Some(upscale_model) =
+        cached_ai_state(ai_state_mutex, |state| state.upscale_model.clone())
+    {
+        return Ok(upscale_model);
+    }
+
+    let _guard = ai_init_lock.lock().await;
+
+    if let Some(upscale_model) =
+        cached_ai_state(ai_state_mutex, |state| state.upscale_model.clone())
+    {
+        return Ok(upscale_model);
+    }
+
+    let models_dir = get_models_dir(app_handle)?;
+    download_and_verify_model(app_handle, &models_dir, &UPSCALE_ASSET).await?;
+
+    let _ = ort::init().with_name("AI-Upscale").commit();
+    let session = build_session(
+        &models_dir.join(UPSCALE_FILENAME),
+        SessionKind::Persistent,
+        gpu_acceleration_enabled(app_handle),
+        None,
+    )?;
+    let upscale_model = Arc::new(Mutex::new(session));
+
+    crate::register_exit_handler();
+
+    ai_state_mutex
+        .lock()
+        .unwrap()
+        .get_or_insert_with(AiState::default)
+        .upscale_model = Some(upscale_model.clone());
+
+    Ok(upscale_model)
+}
+
 pub async fn get_or_init_clip_models(
     app_handle: &tauri::AppHandle,
     ai_state_mutex: &Mutex<Option<AiState>>,
@@ -1484,6 +1547,12 @@ const DENOISE_TILE: TileParams = TileParams {
     overlap: 64,
 };
 
+const UPSCALE_TILE: TileParams = TileParams {
+    cs: 544,
+    margin: 16,
+    overlap: 16,
+};
+
 #[inline]
 fn mirror_coord(c: i32, size: i32) -> i32 {
     if c < 0 {
@@ -1497,18 +1566,26 @@ fn mirror_coord(c: i32, size: i32) -> i32 {
 
 fn extract_tile_mirror(img: &Rgb32FImage, x0: i32, y0: i32, cs: usize) -> Array4<f32> {
     let (w, h) = (img.width() as i32, img.height() as i32);
-    let mut arr = Array4::zeros((1, 3, cs, cs));
-    for dy in 0..cs as i32 {
-        for dx in 0..cs as i32 {
-            let sx = mirror_coord(x0 + dx, w);
-            let sy = mirror_coord(y0 + dy, h);
-            let px = img.get_pixel(sx as u32, sy as u32);
-            arr[[0, 0, dy as usize, dx as usize]] = px[0];
-            arr[[0, 1, dy as usize, dx as usize]] = px[1];
-            arr[[0, 2, dy as usize, dx as usize]] = px[2];
-        }
-    }
-    arr
+    let src = img.as_raw();
+    let plane = cs * cs;
+    let mut data = vec![0.0f32; 3 * plane];
+    let (r, rest) = data.split_at_mut(plane);
+    let (g, b) = rest.split_at_mut(plane);
+    r.par_chunks_exact_mut(cs)
+        .zip(g.par_chunks_exact_mut(cs))
+        .zip(b.par_chunks_exact_mut(cs))
+        .enumerate()
+        .for_each(|(dy, ((r, g), b))| {
+            let sy = mirror_coord(y0 + dy as i32, h) as usize;
+            let row = &src[sy * w as usize * 3..(sy + 1) * w as usize * 3];
+            for dx in 0..cs {
+                let sx = mirror_coord(x0 + dx as i32, w) as usize * 3;
+                r[dx] = row[sx];
+                g[dx] = row[sx + 1];
+                b[dx] = row[sx + 2];
+            }
+        });
+    Array4::from_shape_vec((1, 3, cs, cs), data).expect("tile buffer matches its shape")
 }
 
 fn tile_origins(len: usize, params: TileParams) -> Vec<i32> {
@@ -1537,74 +1614,117 @@ fn tile_blend_weights(params: TileParams) -> Vec<f32> {
         .collect()
 }
 
-fn run_native_denoise(
+fn run_tiled(
     img: &Rgb32FImage,
     session: &Mutex<Session>,
     params: TileParams,
+    scale: u32,
     on_progress: &dyn Fn(f32),
 ) -> Result<Rgb32FImage> {
+    let s = scale as usize;
     let (width, height) = (img.width() as usize, img.height() as usize);
+    let (out_w, out_h) = (width * s, height * s);
     let valid = params.cs - 2 * params.margin;
-    let weights = tile_blend_weights(params);
+    let weights = tile_blend_weights(TileParams {
+        cs: params.cs * s,
+        margin: params.margin * s,
+        overlap: params.overlap * s,
+    });
     let xs = tile_origins(width, params);
     let ys = tile_origins(height, params);
     let total = xs.len() * ys.len();
 
-    let mut accumulator = vec![0.0f32; width * height * 3];
-    let mut weight_sum = vec![0.0f32; width * height];
-
-    for (i, (&y0, &x0)) in ys
+    let mut accumulator = vec![0.0f32; out_w * out_h * 3];
+    let mut weight_sum = vec![0.0f32; out_w * out_h];
+    let origins: Vec<(i32, i32)> = ys
         .iter()
-        .flat_map(|y| xs.iter().map(move |x| (y, x)))
-        .enumerate()
-    {
-        on_progress(i as f32 / total as f32);
+        .flat_map(|&y| xs.iter().map(move |&x| (y, x)))
+        .collect();
 
-        let crop = extract_tile_mirror(img, x0, y0, params.cs);
-        let t_input = Tensor::from_array(crop.as_standard_layout().to_owned())?;
-
-        let tile = {
-            let mut sess = session.lock().unwrap();
-            let outputs = gpu_inference(sess.run(ort::inputs![t_input]))?;
-            outputs[0]
-                .try_extract_array::<f32>()?
-                .to_owned()
-                .into_dimensionality::<ndarray::Ix4>()
-                .map_err(|e| anyhow::anyhow!("Unexpected output shape: {}", e))?
-        };
-
-        for ty in 0..valid {
-            let gy = y0 + (params.margin + ty) as i32;
-            if gy < 0 || gy >= height as i32 {
-                continue;
-            }
-            for tx in 0..valid {
-                let gx = x0 + (params.margin + tx) as i32;
-                if gx < 0 || gx >= width as i32 {
-                    continue;
+    std::thread::scope(|scope| -> Result<()> {
+        let (sender, receiver) = std::sync::mpsc::sync_channel::<Result<Array4<f32>>>(1);
+        let origins_ref = &origins;
+        scope.spawn(move || {
+            for &(y0, x0) in origins_ref {
+                let tile = (|| -> Result<Array4<f32>> {
+                    let crop = extract_tile_mirror(img, x0, y0, params.cs);
+                    let t_input = Tensor::from_array(crop)?;
+                    let mut sess = session.lock().unwrap();
+                    let outputs = gpu_inference(sess.run(ort::inputs![t_input]))?;
+                    outputs[0]
+                        .try_extract_array::<f32>()?
+                        .as_standard_layout()
+                        .into_owned()
+                        .into_dimensionality::<ndarray::Ix4>()
+                        .map_err(|e| anyhow::anyhow!("Unexpected output shape: {}", e))
+                })();
+                let failed = tile.is_err();
+                if sender.send(tile).is_err() || failed {
+                    break;
                 }
-                let w = weights[ty] * weights[tx];
-                let idx = gy as usize * width + gx as usize;
-                for c in 0..3 {
-                    let v = tile[[0, c, params.margin + ty, params.margin + tx]].clamp(0.0, 1.0);
-                    accumulator[idx * 3 + c] += v * w;
-                }
-                weight_sum[idx] += w;
-            }
-        }
-    }
-
-    let mut out = Rgb32FImage::new(width as u32, height as u32);
-    out.par_chunks_exact_mut(3)
-        .zip(accumulator.par_chunks_exact(3))
-        .zip(weight_sum.par_iter())
-        .for_each(|((px, acc), &w)| {
-            let inv = if w > 0.0 { 1.0 / w } else { 0.0 };
-            for c in 0..3 {
-                px[c] = (acc[c] * inv).clamp(0.0, 1.0);
             }
         });
-    Ok(out)
+
+        for (i, (&(y0, x0), tile)) in origins.iter().zip(receiver).enumerate() {
+            on_progress(i as f32 / total as f32);
+            let tile = tile?;
+            let (tile_h, tile_w) = (tile.dim().2, tile.dim().3);
+            if tile_h < params.cs * s || tile_w < params.cs * s {
+                return Err(anyhow::anyhow!(
+                    "Unexpected output tile size {:?} for a {} px input",
+                    tile.dim(),
+                    params.cs
+                ));
+            }
+            let data = tile
+                .as_slice()
+                .ok_or_else(|| anyhow::anyhow!("Output tile is not contiguous"))?;
+            let plane = tile_h * tile_w;
+
+            let (ox, oy, om) = (x0 * scale as i32, y0 * scale as i32, params.margin * s);
+            let top = oy + om as i32;
+            let first = top.max(0) as usize;
+            let last = (top + (valid * s) as i32).clamp(0, out_h as i32) as usize;
+            if first >= last {
+                continue;
+            }
+            accumulator[first * out_w * 3..last * out_w * 3]
+                .par_chunks_exact_mut(out_w * 3)
+                .zip(weight_sum[first * out_w..last * out_w].par_chunks_exact_mut(out_w))
+                .enumerate()
+                .for_each(|(row, (acc, wsum))| {
+                    let ty = (first + row) as i32 - top;
+                    let ty = ty as usize;
+                    let line = (om + ty) * tile_w + om;
+                    for tx in 0..valid * s {
+                        let gx = ox + (om + tx) as i32;
+                        if gx < 0 || gx >= out_w as i32 {
+                            continue;
+                        }
+                        let w = weights[ty] * weights[tx];
+                        let gx = gx as usize;
+                        for c in 0..3 {
+                            let v = data[c * plane + line + tx].clamp(0.0, 1.0);
+                            acc[gx * 3 + c] += v * w;
+                        }
+                        wsum[gx] += w;
+                    }
+                });
+        }
+        Ok(())
+    })?;
+
+    accumulator
+        .par_chunks_exact_mut(3)
+        .zip(weight_sum.par_iter())
+        .for_each(|(px, &w)| {
+            let inv = if w > 0.0 { 1.0 / w } else { 0.0 };
+            for v in px {
+                *v = (*v * inv).clamp(0.0, 1.0);
+            }
+        });
+    Rgb32FImage::from_raw(out_w as u32, out_h as u32, accumulator)
+        .ok_or_else(|| anyhow::anyhow!("Tiled output does not match its dimensions"))
 }
 
 pub fn run_ai_denoise(
@@ -1612,8 +1732,17 @@ pub fn run_ai_denoise(
     session: &Mutex<Session>,
     on_progress: &dyn Fn(f32),
 ) -> Result<DynamicImage> {
-    let out = run_native_denoise(rgb_img, session, DENOISE_TILE, on_progress)?;
+    let out = run_tiled(rgb_img, session, DENOISE_TILE, 1, on_progress)?;
     Ok(DynamicImage::ImageRgb32F(out))
+}
+
+pub fn run_ai_upscale(
+    rgb_img: &Rgb32FImage,
+    session: &Mutex<Session>,
+    scale: u32,
+    on_progress: &dyn Fn(f32),
+) -> Result<Rgb32FImage> {
+    run_tiled(rgb_img, session, UPSCALE_TILE, scale, on_progress)
 }
 
 const LAMA_PIXEL_BUDGET: f32 = 768.0 * 768.0;

@@ -92,6 +92,7 @@
         "highlights": "高光",
         "hue": "色相",
         "mix": "黑白混合",
+        "mixPickerTooltip": "黑白混合吸管：在照片上按住并上下拖动",
         "saturation": "饱和度",
         "shadows": "阴影",
         "strength": "强度",
@@ -150,6 +151,8 @@
       "aiDenoiseColor": "颜色噪点",
       "classicDenoise": "经典降噪",
       "aiDenoiseDetail": "细节",
+      "aiUpscale": "RapidRes 2x",
+      "aiUpscaleDetail": "细节",
       "blueYellow": "蓝/黄",
       "centre": "居中",
       "chromaticAberration": "色差",
@@ -165,6 +168,7 @@
       "negativeGreen": "绿色",
       "negativeRed": "红色",
       "noiseReduction": "降噪",
+      "superResolution": "RapidRes",
       "presence": "质感",
       "redCyan": "红/青",
       "sharpening": "锐化",
@@ -222,7 +226,25 @@
       "roundness": "圆度",
       "size": "大小",
       "spatial": "空间",
-      "vignette": "暗角"
+      "vignette": "暗角",
+      "motionBlur": "运动模糊",
+      "motionBlurAngle": "角度",
+      "motionBlurDepth": "深度",
+      "motionBlurHighlights": "高光",
+      "motionBlurLayer": "运动",
+      "motionBlurLayers": {
+        "auto": "自动",
+        "panning": "追焦",
+        "subject": "移动主体",
+        "uniform": "均匀"
+      },
+      "motionBlurType": "类型",
+      "motionBlurTypes": {
+        "linear": "线性",
+        "zoom": "缩放",
+        "spin": "旋转",
+        "smooth": "平滑"
+      }
     }
   },
   "contextMenus": {
@@ -305,6 +327,8 @@
       "redo": "重做",
       "removeBlackWhite": "移除黑白",
       "removeDenoise": "移除降噪",
+      "superResolution": "RapidRes (2x)",
+      "removeSuperResolution": "移除 RapidRes",
       "removeNegativeConversion": "移除负片转换",
       "resetAdjustments": "重置调整",
       "stitchPanorama": "拼接全景图",
@@ -369,6 +393,8 @@
       "deleteSelected": "仅删除选中项",
       "denoise_one": "降噪",
       "denoise_other": "降噪",
+      "superResolution_one": "RapidRes (2x)",
+      "superResolution_other": "RapidRes (2x)",
       "duplicateImage": "复制图像",
       "enable": "启用",
       "exportImage_one": "导出图像",
@@ -463,6 +489,15 @@
         "feather": "画笔羽化",
         "size": "画笔大小"
       },
+      "cloneHeal": {
+        "cloneTooltip": "精确复制来源，包括其亮度和颜色",
+        "dragSource": "拖动以移动来源",
+        "healTooltip": "复制来源的纹理，并使其融入周围的亮度和颜色",
+        "hintActive": "拖动来源轮廓以选择像素的来源位置。每一笔新的涂抹都会成为独立的区域。按住 Shift 可添加到当前区域。",
+        "hintEmpty": "在污点、电线或干扰物上涂抹，会自动找到合适的来源。",
+        "mode": "模式",
+        "newSource": "查找其他来源"
+      },
       "comingSoon": "即将推出",
       "connection": {
         "backendLabel": "AI 后端：",
@@ -483,6 +518,7 @@
       "createNewTitle": "创建新的生成式编辑",
       "createNewTooltip": "创建新的 {{name}} 编辑",
       "denoising": "正在进行 AI 降噪...",
+      "upscaling": "正在运行 RapidRes...",
       "dropzoneText": "拖放到此处以创建新编辑",
       "editSettingsTitle": "编辑设置",
       "editsTitle": "编辑",
@@ -790,8 +826,7 @@
       "toggleAnalyticsTooltip": "切换分析显示",
       "tooltips": {
         "addToCurrent": "将 {{name}} 添加到当前蒙版或创建新蒙版（右键单击）",
-        "createNew": "创建新 {{name}} 蒙版",
-        "selectNewSourcePoint": "{{modifier}} + 点击选择新的源点"
+        "createNew": "创建新 {{name}} 蒙版"
       }
     },
     "metadata": {
@@ -934,6 +969,9 @@
   "export": {
     "advanced": {
       "exportMasks": "将蒙版导出为单独文件",
+      "exportOriginal": "同时导出原图",
+      "originalCrop": "应用裁剪",
+      "originalKeepExposure": "保留曝光",
       "preserveFolders": "保留文件夹结构",
       "preserveTimestamps": "将文件时间戳设为 EXIF 拍摄日期",
       "title": "导出设置"
@@ -1128,6 +1166,7 @@
       "failed": "失败（{{failedCount}}）",
       "kinds": {
         "denoise": "正在 AI 降噪",
+        "upscale": "正在 RapidRes 放大",
         "depthMap": "正在分析深度",
         "depthMask": "正在生成深度蒙版",
         "faceMask": "正在生成面部蒙版",
@@ -1458,6 +1497,7 @@
       "linear": "线性",
       "liquify": "液化",
       "luminance": "亮度",
+      "matchBrush": "匹配画笔",
       "others": "其他",
       "quickErase": "快速擦除",
       "quickEraser": "快速橡皮擦",
@@ -1522,6 +1562,7 @@
       "descReplace": "覆盖所有选中的设置，其余重置为默认值。",
       "groups": {
         "aiDenoise": "AI 降噪",
+        "aiUpscale": "RapidRes",
         "blackWhite": "黑白",
         "chromaticAberration": "色差",
         "clarityDehaze": "清晰度与去雾",
@@ -1536,6 +1577,7 @@
         "halationGlow": "光晕与发光",
         "hueShift": "全局色相偏移",
         "lensBlur": "镜头模糊",
+        "motionBlur": "运动模糊",
         "lensCorrection": "镜头校正",
         "lut": "LUT",
         "masks": "蒙版",
@@ -1679,7 +1721,6 @@
       "selectManufacturer": "选择制造商",
       "title": "镜头校正",
       "vignetting": "暗角",
-      "waitingAutoDetect": "等待自动检测...",
       "zoomInTooltip": "放大",
       "zoomOutTooltip": "缩小"
     },
@@ -1779,7 +1820,7 @@
           "fine": "按 Shift 精细调整"
         },
         "keys": {
-          "hold": "按住",
+          "hold": "单击 / 按住",
           "previousImage": "上一张",
           "nextImage": "下一张",
           "reset": "重置",
@@ -1812,6 +1853,7 @@
       "limit": "上限",
       "modals": {
         "aiDenoiseMessage": "确定要清除 AI 降噪缓存吗？\n\n启用了 AI 降噪的图像需要重新降噪，每张图像可能需要几分钟。",
+        "aiUpscaleMessage": "确定要清除 RapidRes 缓存吗？\n\n启用了 RapidRes 的图像需要重新放大。",
         "aiMapsMessage": "确定要清除深度与法线贴图吗？\n\n使用镜头模糊、雾效或重新打光的图像会在下次打开时重新生成贴图。",
         "aiMessage": "您确定要从所有活动根文件夹中的所有图像中移除所有 AI 生成的标签吗？\n\n这不会影响用户添加的标签。此操作无法撤销。",
         "allMessage": "您确定要从所有活动根文件夹中的所有图像中移除所有 AI 生成和用户添加的标签吗？\n\n此操作无法撤销。",
@@ -1839,6 +1881,7 @@
       "show": "显示",
       "statuses": {
         "aiDenoiseSuccess": "AI 降噪缓存已成功清除。",
+        "aiUpscaleSuccess": "RapidRes 缓存已成功清除。",
         "aiSuccess": "{{count}} 个文件已更新。AI 标签已移除。",
         "aiSuccess_one": "{{count}} 个文件已更新。AI 标签已移除。",
         "aiSuccess_other": "{{count}} 个文件已更新。AI 标签已移除。",
@@ -1855,6 +1898,8 @@
       "storage": {
         "aiDenoise": "AI 降噪",
         "aiDenoiseDesc": "缓存的降噪结果。",
+        "aiUpscale": "RapidRes",
+        "aiUpscaleDesc": "缓存的 RapidRes 2 倍放大结果。",
         "aiMaps": "深度与法线贴图",
         "aiMapsDesc": "用于镜头模糊、雾效和重新打光。",
         "immich": "Immich",
@@ -1903,6 +1948,11 @@
       "title": "通用设置",
       "toolFocusMode": "工具专注模式",
       "toolFocusModeDesc": "展开某个工具时，自动折叠同一面板中的其他工具。",
+      "uiScale": "界面缩放",
+      "uiScaleCompact": "紧凑",
+      "uiScaleDefault": "默认",
+      "uiScaleDesc": "独立于系统显示缩放，调整界面大小。紧凑尺寸可在小尺寸笔记本屏幕上显示更多内容。",
+      "uiScaleLarge": "大",
       "xmpSync": "XMP 元数据同步",
       "xmpSyncDesc": "将评分、颜色标签和标签同步到标准 XMP 附属文件，以便与其他照片编辑器兼容。"
     },
@@ -2172,15 +2222,14 @@
       "smallThumbnailRes": "网格缩略图分辨率",
       "smallThumbnailResDesc": "图库网格中显示的缩略图分辨率。",
       "staticDesc": "编辑器以固定分辨率渲染图像。此模式最快且最一致，非常适合低端硬件，优先考虑流畅性能而非像素完美的缩放。",
-      "staticPreviewRes": "静态预览分辨率",
-      "staticPreviewResDesc": "设置静态预览的分辨率，如裁剪模式、镜头校正和透视工具。不影响主编辑器预览。",
       "threads": "线程数",
       "thumbnailRes": "缩略图分辨率",
       "thumbnailResDesc": "确定生成的图库缩略图的分辨率。较高的值可在加载时产生更清晰的图像。",
       "title": "处理引擎",
       "wgpu": "WGPU 直接渲染",
       "wgpuDescAndroid": "绕过浏览器编码，实现即时响应的实时预览。（在 Android 上已禁用：原生 WGPU 表面创建目前不支持与移动端 Webview 同时运行。）",
-      "wgpuDescLinux": "绕过浏览器编码，实现即时响应的实时预览。（在 Linux 上已禁用：Tauri 使用 GTK 作为 Webview，与同一 X11 表面上的 WGPU 冲突并导致闪烁。）",
+      "wgpuDescLinuxExperimental": "在 Linux 上为实验性功能，可能不稳定。",
+      "wgpuDescLinuxX11": "在 X11 上不可用。",
       "wgpuDescRecommended": "绕过浏览器编码，实现即时响应的实时预览。强烈推荐以获得最佳性能。",
       "wgpuLabel": "启用直接 WGPU 渲染",
       "workerThreads": "缩略图工作线程数",
@@ -2222,6 +2271,7 @@
         "mediapipe": "感谢其快速的面部关键点和分割模型，为 AI 面部蒙版提供支持。",
         "negpy": "为负片转换逻辑提供了灵感。",
         "nind": "为 AI 模型提供支持，驱动了 RapidRAW 中的 AI 降噪功能。",
+        "span": "RapidRAW 的 AI 2 倍放大功能 RapidRes 的基础 AI 模型，由 RapidRAW 针对自身的 RAW 处理流程进行微调（作者 Philip Hofmann，CC BY 4.0）。",
         "rawler": "为优秀的 Rust 库提供支持，构成了本项目 RAW 文件处理的基础。",
         "sam2": "为提供基础模型，用于 AI 主体检测功能。",
         "spektrafilm": "感谢 Andrea Volpato 提供基于光谱的胶片模拟 LUT，为 RapidRAW 的内置胶片模拟提供支持。采用 CC BY-SA 4.0 许可。",

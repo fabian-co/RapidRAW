@@ -92,6 +92,7 @@
         "highlights": "Světla",
         "hue": "Odstín",
         "mix": "Č/B mix",
+        "mixPickerTooltip": "Pipeta Č/B mixu: klikněte na fotografii a táhněte nahoru nebo dolů",
         "saturation": "Sytost",
         "shadows": "Stíny",
         "strength": "Síla",
@@ -150,6 +151,8 @@
       "aiDenoiseColor": "Barevný šum",
       "classicDenoise": "Klasické odšumění",
       "aiDenoiseDetail": "Detail",
+      "aiUpscale": "RapidRes 2x",
+      "aiUpscaleDetail": "Detail",
       "blueYellow": "Modrá/Žlutá",
       "centre": "Střed",
       "chromaticAberration": "Chromatická aberace",
@@ -165,6 +168,7 @@
       "negativeGreen": "Zelená",
       "negativeRed": "Červená",
       "noiseReduction": "Redukce šumu",
+      "superResolution": "RapidRes",
       "presence": "Prezence",
       "redCyan": "Červená/Azurová",
       "sharpening": "Doostření",
@@ -222,7 +226,25 @@
       "roundness": "Kulatost",
       "size": "Velikost",
       "spatial": "Prostorové",
-      "vignette": "Viněta"
+      "vignette": "Viněta",
+      "motionBlur": "Pohybové rozmazání",
+      "motionBlurAngle": "Úhel",
+      "motionBlurDepth": "Hloubka",
+      "motionBlurHighlights": "Světla",
+      "motionBlurLayer": "Pohyb",
+      "motionBlurLayers": {
+        "auto": "Automaticky",
+        "panning": "Švenkování",
+        "subject": "Pohybující se objekt",
+        "uniform": "Rovnoměrně"
+      },
+      "motionBlurType": "Typ",
+      "motionBlurTypes": {
+        "linear": "Lineární",
+        "zoom": "Zoom",
+        "spin": "Otáčení",
+        "smooth": "Vyhlazení"
+      }
     }
   },
   "contextMenus": {
@@ -307,6 +329,8 @@
       "redo": "Znovu",
       "removeBlackWhite": "Odebrat černobílou",
       "removeDenoise": "Odebrat odšumění",
+      "superResolution": "RapidRes (2x)",
+      "removeSuperResolution": "Odebrat RapidRes",
       "removeNegativeConversion": "Odebrat převod negativu",
       "resetAdjustments": "Obnovit nastavení",
       "stitchPanorama": "Složit panorama",
@@ -393,6 +417,10 @@
       "denoise_many": "Odšumit",
       "denoise_one": "Odšumit",
       "denoise_other": "Odšumit",
+      "superResolution_few": "RapidRes (2x)",
+      "superResolution_many": "RapidRes (2x)",
+      "superResolution_one": "RapidRes (2x)",
+      "superResolution_other": "RapidRes (2x)",
       "duplicateImage": "Duplikovat snímek",
       "enable": "Zapnout",
       "exportImage_few": "Exportovat {{count}} snímky",
@@ -497,6 +525,15 @@
         "feather": "Prolnutí štětce",
         "size": "Velikost štětce"
       },
+      "cloneHeal": {
+        "cloneTooltip": "Zkopíruje zdroj přesně, včetně jasu a barvy",
+        "dragSource": "Tažením přesunete zdroj",
+        "healTooltip": "Zkopíruje texturu zdroje a přizpůsobí ji jasu a barvě okolí",
+        "hintActive": "Tažením obrysu zdroje zvolíte, odkud se pixely berou. Každý nový tah vytvoří samostatnou oblast. Podržením Shift přidáte k této.",
+        "hintEmpty": "Přemalujte skvrnu, drát nebo rušivý prvek. Vhodný zdroj se najde automaticky.",
+        "mode": "Režim",
+        "newSource": "Najít jiný zdroj"
+      },
       "comingSoon": "Již brzy",
       "connection": {
         "backendLabel": "AI Backend:",
@@ -517,6 +554,7 @@
       "createNewTitle": "Vytvořit novou generativní úpravu",
       "createNewTooltip": "Vytvořit novou {{name}} úpravu",
       "denoising": "Probíhá AI odšumění...",
+      "upscaling": "Probíhá RapidRes...",
       "dropzoneText": "Přetažením sem vytvoříte novou úpravu",
       "editSettingsTitle": "Upravit nastavení",
       "editsTitle": "Úpravy",
@@ -841,8 +879,7 @@
       "toggleAnalyticsTooltip": "Přepnout zobrazení Analytics",
       "tooltips": {
         "addToCurrent": "Přidat {{name}} na aktuální masku nebo vytvořit novou (klikněte pravým tlačítkem)",
-        "createNew": "Vytvořit novou {{name}} masku",
-        "selectNewSourcePoint": "{{modifier}} + kliknutím vyberete nový zdrojový bod"
+        "createNew": "Vytvořit novou {{name}} masku"
       }
     },
     "metadata": {
@@ -985,6 +1022,9 @@
   "export": {
     "advanced": {
       "exportMasks": "Exportovat masky jako samostatné soubory",
+      "exportOriginal": "Exportovat také originál",
+      "originalCrop": "Použít ořez",
+      "originalKeepExposure": "Zachovat expozici",
       "preserveFolders": "Zachovat strukturu složek",
       "preserveTimestamps": "Nastavit časová razítka souborů z data pořízení EXIF",
       "title": "Nastavení exportu"
@@ -1183,6 +1223,7 @@
       "failed": "Selhalo ({{failedCount}})",
       "kinds": {
         "denoise": "AI odšumování",
+        "upscale": "Zvětšování RapidRes",
         "depthMap": "Analýza hloubky",
         "depthMask": "Vytváření hloubkové masky",
         "faceMask": "Generování masky obličeje",
@@ -1528,6 +1569,7 @@
       "linear": "Lineární",
       "liquify": "Zkapalnění",
       "luminance": "Jas",
+      "matchBrush": "Štětec shody",
       "others": "Ostatní",
       "quickErase": "Rychlé vymazání",
       "quickEraser": "Rychlá guma",
@@ -1592,6 +1634,7 @@
       "descReplace": "Přepíše všechna vybraná nastavení, zbytek obnoví na výchozí hodnoty.",
       "groups": {
         "aiDenoise": "AI odšumění",
+        "aiUpscale": "RapidRes",
         "blackWhite": "Černobílá",
         "chromaticAberration": "Chromatická aberace",
         "clarityDehaze": "Zřetelnost a odmlžení",
@@ -1606,6 +1649,7 @@
         "halationGlow": "Halace a záře",
         "hueShift": "Globální posun odstínu",
         "lensBlur": "Rozostření objektivu",
+        "motionBlur": "Pohybové rozmazání",
         "lensCorrection": "Korekce objektivu",
         "lut": "LUT",
         "masks": "Masky",
@@ -1757,7 +1801,6 @@
       "selectManufacturer": "Vyberte výrobce",
       "title": "Korekce objektivu",
       "vignetting": "Vinětace",
-      "waitingAutoDetect": "Čekání na automatickou detekci...",
       "zoomInTooltip": "Přiblížit",
       "zoomOutTooltip": "Oddálit"
     },
@@ -1861,7 +1904,7 @@
           "fine": "Shift pro jemnost"
         },
         "keys": {
-          "hold": "Podržet",
+          "hold": "Klepnout / Držet",
           "previousImage": "Předch. snímek",
           "nextImage": "Další snímek",
           "reset": "Obnovit",
@@ -1894,6 +1937,7 @@
       "limit": "Limit",
       "modals": {
         "aiDenoiseMessage": "Opravdu chcete vymazat mezipaměť AI odšumění?\n\nSnímky se zapnutým AI odšuměním bude nutné znovu odšumět, což může trvat několik minut na snímek.",
+        "aiUpscaleMessage": "Opravdu chcete vymazat mezipaměť RapidRes?\n\nSnímky se zapnutým RapidRes bude nutné znovu zvětšit.",
         "aiMapsMessage": "Opravdu chcete vymazat hloubkové a normálové mapy?\n\nObrázky s rozostřením objektivu, mlhou nebo přesvícením si mapy při dalším otevření vytvoří znovu.",
         "aiMessage": "Opravdu chcete odstranit všechny značky generované AI ze všech snímků ve všech aktivních kořenových složkách?\n\nUživatelem přidané značky tím nebudou dotčeny. Tuto akci nelze vrátit.",
         "allMessage": "Opravdu chcete odstranit všechny značky generované umělou inteligencí i přidané uživatelem ze všech snímků ve všech aktivních kořenových složkách?\n\nTuto akci nelze vrátit.",
@@ -1921,6 +1965,7 @@
       "show": "Zobrazit",
       "statuses": {
         "aiDenoiseSuccess": "Mezipaměť AI odšumění byla úspěšně vymazána.",
+        "aiUpscaleSuccess": "Mezipaměť RapidRes byla úspěšně vymazána.",
         "aiSuccess": "{{count}} souborů aktualizováno. Značky AI odstraněny.",
         "aiSuccess_few": "{{count}} soubory aktualizovány. Značky AI odstraněny.",
         "aiSuccess_many": "{{count}} souboru aktualizováno. Značky AI odstraněny.",
@@ -1943,6 +1988,8 @@
       "storage": {
         "aiDenoise": "AI odšumění",
         "aiDenoiseDesc": "Uložené výsledky odšumění.",
+        "aiUpscale": "RapidRes",
+        "aiUpscaleDesc": "Uložená 2x zvětšení RapidRes.",
         "aiMaps": "Hloubkové a normálové mapy",
         "aiMapsDesc": "Používá je rozostření objektivu, mlha a přesvícení.",
         "immich": "Immich",
@@ -1991,6 +2038,11 @@
       "title": "Obecná nastavení",
       "toolFocusMode": "Režim zaměření na nástroj",
       "toolFocusModeDesc": "Při rozbalení jednoho nástroje v panelu automaticky sbalí ostatní nástroje.",
+      "uiScale": "Měřítko rozhraní",
+      "uiScaleCompact": "Kompaktní",
+      "uiScaleDefault": "Výchozí",
+      "uiScaleDesc": "Zmenšete nebo zvětšete rozhraní nezávisle na systémovém škálování displeje. Kompaktní velikosti se lépe hodí na malé obrazovky notebooků.",
+      "uiScaleLarge": "Velké",
       "xmpSync": "Synchronizace metadat XMP",
       "xmpSyncDesc": "Synchronizujte hodnocení, barevné štítky a značky se standardními doprovodnými soubory XMP pro kompatibilitu s jinými editory fotografií."
     },
@@ -2260,15 +2312,14 @@
       "smallThumbnailRes": "Rozlišení miniatur mřížky",
       "smallThumbnailResDesc": "Rozlišení miniatur zobrazených v mřížce knihovny.",
       "staticDesc": "Editor vykresluje snímek v pevném rozlišení. Tento režim je nejrychlejší a nejkonzistentnější, takže je ideální pro slabší hardware, kde je plynulý výkon důležitější než pixelově přesné přiblížení.",
-      "staticPreviewRes": "Rozlišení statického náhledu",
-      "staticPreviewResDesc": "Nastaví rozlišení pro statické náhledy, jako je režim oříznutí, korekce objektivu a nástroje perspektivy. Neovlivňuje hlavní náhled editoru.",
       "threads": "Vlákna",
       "thumbnailRes": "Rozlišení miniatur",
       "thumbnailResDesc": "Určuje rozlišení generovaných miniatur knihovny. Vyšší hodnoty produkují ostřejší snímky během načítání.",
       "title": "Engine zpracování",
       "wgpu": "Přímé vykreslování WGPU",
       "wgpuDescAndroid": "Obchází kódování prohlížeče pro okamžitě reagující živé náhledy. (Na Androidu zakázáno: nativní tvorba povrchů WGPU není v současnosti podporována vedle mobilního webview.)",
-      "wgpuDescLinux": "Obchází kódování prohlížeče pro okamžitě reagující živé náhledy. (Na Linuxu zakázáno: Tauri používá GTK pro webview, což je v konfliktu s WGPU na stejném povrchu X11 a způsobuje blikání.)",
+      "wgpuDescLinuxExperimental": "Experimentální na Linuxu a může být nestabilní.",
+      "wgpuDescLinuxX11": "Není k dispozici na X11.",
       "wgpuDescRecommended": "Obchází kódování prohlížeče pro okamžitě reagující živé náhledy. Důrazně doporučeno pro výkon.",
       "wgpuLabel": "Povolit přímé vykreslování WGPU",
       "workerThreads": "Pracovní vlákna miniatur",
@@ -2310,6 +2361,7 @@
         "mediapipe": "Za rychlé modely obličejových bodů a segmentace, které pohánějí AI masky obličeje.",
         "negpy": "Pro inspiraci negativní konverzní logiky.",
         "nind": "Za poskytování modelů AI, které pohánějí funkce redukce šumu AI v RapidRAW.",
+        "span": "Za základní model AI pro RapidRes, 2x AI zvětšování v RapidRAW, který RapidRAW doladil na vlastním zpracování RAW (autor Philip Hofmann, CC BY 4.0).",
         "rawler": "Za vynikající přepravku Rust, která poskytuje základ pro zpracování souborů RAW v tomto projektu.",
         "sam2": "Za poskytnutí základního modelu používaného pro schopnosti detekce předmětů AI.",
         "spektrafilm": "Pro spektrálně založené filmové emulační LUT od Andrey Volpata, použité pro vestavěné filmové emulace v RapidRAW. Licence CC BY-SA 4.0.",

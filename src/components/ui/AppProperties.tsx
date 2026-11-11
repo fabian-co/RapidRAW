@@ -48,6 +48,7 @@ export enum Invokes {
   ClearAiTags = 'clear_ai_tags',
   ClearAllTags = 'clear_all_tags',
   ClearAiDenoiseCache = 'clear_ai_denoise_cache',
+  ClearAiUpscaleCache = 'clear_ai_upscale_cache',
   ClearThumbnailCache = 'clear_thumbnail_cache',
   CopyFiles = 'copy_files',
   CreateFolder = 'create_folder',
@@ -89,6 +90,7 @@ export enum Invokes {
   ImportFiles = 'import_files',
   InvokeGenerativeReplaseWithMaskDef = 'invoke_generative_replace_with_mask_def',
   IsTetheringSupported = 'is_tethering_supported',
+  IsWgpuRendererSupported = 'is_wgpu_renderer_supported',
   ListImagesInDir = 'list_images_in_dir',
   ListImagesRecursive = 'list_images_recursive',
   GetFlaggedPaths = 'get_flagged_paths',
@@ -97,6 +99,7 @@ export enum Invokes {
   LoadPresets = 'load_presets',
   LoadSettings = 'load_settings',
   MoveFiles = 'move_files',
+  PreloadImages = 'preload_images',
   ReadExifForPaths = 'read_exif_for_paths',
   RemoveTagForPaths = 'remove_tag_for_paths',
   RenameFiles = 'rename_files',
@@ -124,7 +127,9 @@ export enum Invokes {
   MergeHdr = 'merge_hdr',
   TestAIConnectorConnection = 'test_ai_connector_connection',
   SampleHslMixerArea = 'sample_hsl_mixer_area',
+  GetDepthPreview = 'get_depth_preview',
   UpdateWgpuTransform = 'update_wgpu_transform',
+  SetUiScale = 'set_ui_scale',
   ReleaseOriginalPreview = 'release_original_preview',
   OpenViewerWindow = 'open_viewer_window',
   CloseViewerWindow = 'close_viewer_window',
@@ -238,6 +243,7 @@ export type CompareMode = 'toggle' | Exclude<CompareView, 'off'>;
 export interface AppSettings {
   aiCacheLimitGb?: number;
   aiMapsCacheLimitGb?: number;
+  aiUpscaleCacheLimitGb?: number;
   thumbnailCacheLimitGb?: number;
   aiConnectorAddress?: string;
   aiGpuAcceleration?: boolean;
@@ -248,6 +254,7 @@ export interface AppSettings {
   mediumThumbnailResolution?: number;
   enableZoomHifi?: boolean;
   useFullDpiRendering?: boolean;
+  uiScale?: number;
   highResZoomMultiplier?: number;
   enableLivePreviews?: boolean;
   livePreviewQuality?: string;

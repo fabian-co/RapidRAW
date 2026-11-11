@@ -92,6 +92,7 @@
         "highlights": "Highlights",
         "hue": "Hue",
         "mix": "B&W Mix",
+        "mixPickerTooltip": "B&W Mix Picker: click and drag up or down on the photo",
         "saturation": "Saturation",
         "shadows": "Shadows",
         "strength": "Strength",
@@ -150,6 +151,8 @@
       "aiDenoiseColor": "Color Noise",
       "classicDenoise": "Classic Denoise",
       "aiDenoiseDetail": "Detail",
+      "aiUpscale": "RapidRes 2x",
+      "aiUpscaleDetail": "Detail",
       "blueYellow": "Blue/Yellow",
       "centre": "Centré",
       "chromaticAberration": "Chromatic Aberration",
@@ -165,6 +168,7 @@
       "negativeGreen": "Green",
       "negativeRed": "Red",
       "noiseReduction": "Noise Reduction",
+      "superResolution": "RapidRes",
       "presence": "Presence",
       "redCyan": "Red/Cyan",
       "sharpening": "Sharpening",
@@ -213,6 +217,24 @@
       "lightFlares": "Light Flares",
       "lut": "LUT",
       "midpoint": "Midpoint",
+      "motionBlur": "Motion Blur",
+      "motionBlurAngle": "Angle",
+      "motionBlurDepth": "Depth",
+      "motionBlurHighlights": "Highlights",
+      "motionBlurLayer": "Motion",
+      "motionBlurLayers": {
+        "auto": "Auto",
+        "panning": "Panning",
+        "subject": "Moving Subject",
+        "uniform": "Uniform"
+      },
+      "motionBlurType": "Type",
+      "motionBlurTypes": {
+        "linear": "Linear",
+        "zoom": "Zoom",
+        "spin": "Spin",
+        "smooth": "Smooth"
+      },
       "relight": "Relight",
       "relightAddLight": "Add Light",
       "relightAmbient": "Ambient",
@@ -324,6 +346,8 @@
       "redo": "Redo",
       "removeBlackWhite": "Remove Black & White",
       "removeDenoise": "Remove Denoise",
+      "superResolution": "RapidRes (2x)",
+      "removeSuperResolution": "Remove RapidRes",
       "removeNegativeConversion": "Remove Negative Conversion",
       "resetAdjustments": "Reset Adjustments",
       "stitchPanorama": "Stitch Panorama",
@@ -388,6 +412,8 @@
       "deleteSelected": "Delete Selected Only",
       "denoise_one": "Denoise",
       "denoise_other": "Denoise",
+      "superResolution_one": "RapidRes (2x)",
+      "superResolution_other": "RapidRes (2x)",
       "duplicateImage": "Duplicate Image",
       "enable": "Enable",
       "exportImage_one": "Export Image",
@@ -482,6 +508,15 @@
         "feather": "Brush Feather",
         "size": "Brush Size"
       },
+      "cloneHeal": {
+        "cloneTooltip": "Copy the source exactly, including its brightness and color",
+        "dragSource": "Drag to move the source",
+        "healTooltip": "Copy the source texture and blend it into the surrounding brightness and color",
+        "hintActive": "Drag the source outline to choose where pixels come from. Every new stroke becomes its own spot. Hold Shift to add to this one.",
+        "hintEmpty": "Paint over a spot, wire or distraction. A matching source is found automatically.",
+        "mode": "Mode",
+        "newSource": "Find Another Source"
+      },
       "comingSoon": "Coming Soon",
       "connection": {
         "backendLabel": "AI Backend:",
@@ -502,6 +537,7 @@
       "createNewTitle": "Create New Generative Edit",
       "createNewTooltip": "Create New {{name}} Edit",
       "denoising": "Running AI Denoise...",
+      "upscaling": "Running RapidRes...",
       "dropzoneText": "Drop here to create a new edit",
       "editSettingsTitle": "Edit Settings",
       "editsTitle": "Edits",
@@ -817,8 +853,7 @@
       "toggleAnalyticsTooltip": "Toggle Analytics Display",
       "tooltips": {
         "addToCurrent": "Add {{name}} to Current Mask or Create New (Right-click)",
-        "createNew": "Create New {{name}} Mask",
-        "selectNewSourcePoint": "{{modifier}} + Click to select a new source point"
+        "createNew": "Create New {{name}} Mask"
       }
     },
     "metadata": {
@@ -961,6 +996,9 @@
   "export": {
     "advanced": {
       "exportMasks": "Export masks as separate files",
+      "exportOriginal": "Also export the original",
+      "originalCrop": "Apply crop",
+      "originalKeepExposure": "Keep exposure",
       "preserveFolders": "Preserve Folder Structure",
       "preserveTimestamps": "Set File Timestamps from EXIF Capture Date",
       "title": "Export Settings"
@@ -1155,6 +1193,7 @@
       "failed": "Failed ({{failedCount}})",
       "kinds": {
         "denoise": "AI denoising",
+        "upscale": "RapidRes upscaling",
         "depthMap": "Analyzing depth",
         "depthMask": "Generating depth mask",
         "faceMask": "Generating face mask",
@@ -1488,6 +1527,7 @@
       "linear": "Linear",
       "liquify": "Liquify",
       "luminance": "Luminance",
+      "matchBrush": "Match Brush",
       "others": "Others",
       "quickErase": "Quick Erase",
       "quickEraser": "Quick Eraser",
@@ -1552,6 +1592,7 @@
       "descReplace": "Overwrites all selected settings, resetting the rest to their defaults.",
       "groups": {
         "aiDenoise": "AI Denoise",
+        "aiUpscale": "RapidRes",
         "blackWhite": "Black & White",
         "chromaticAberration": "Chromatic Aberration",
         "clarityDehaze": "Clarity & Dehaze",
@@ -1566,6 +1607,7 @@
         "halationGlow": "Halation & Glow",
         "hueShift": "Global Hue Shift",
         "lensBlur": "Lens Blur",
+        "motionBlur": "Motion Blur",
         "lensCorrection": "Lens Correction",
         "lut": "LUT",
         "masks": "Masks",
@@ -1709,7 +1751,6 @@
       "selectManufacturer": "Select Manufacturer",
       "title": "Lens Correction",
       "vignetting": "Vignetting",
-      "waitingAutoDetect": "Waiting for Auto-Detect...",
       "zoomInTooltip": "Zoom In",
       "zoomOutTooltip": "Zoom Out"
     },
@@ -1809,7 +1850,7 @@
           "fine": "Shift for fine"
         },
         "keys": {
-          "hold": "Hold",
+          "hold": "Tap / hold",
           "previousImage": "Prev. image",
           "nextImage": "Next image",
           "reset": "Reset",
@@ -1842,6 +1883,7 @@
       "limit": "Limit",
       "modals": {
         "aiDenoiseMessage": "Are you sure you want to clear the AI Denoise cache?\n\nImages with AI Denoise enabled will need to be denoised again, which can take several minutes per image.",
+        "aiUpscaleMessage": "Are you sure you want to clear the RapidRes cache?\n\nImages with RapidRes enabled will need to be upscaled again.",
         "aiMapsMessage": "Are you sure you want to clear the depth & normal maps?\n\nImages using Lens Blur, Fog or Relight will regenerate their maps the next time they are opened.",
         "aiMessage": "Are you sure you want to remove all AI-generated tags from all images in all active root folders?\n\nThis will not affect user-added tags. This action cannot be undone.",
         "allMessage": "Are you sure you want to remove all AI-generated and user-added tags from all images in all active root folders?\n\nThis action cannot be undone.",
@@ -1869,6 +1911,7 @@
       "show": "Show",
       "statuses": {
         "aiDenoiseSuccess": "AI Denoise cache cleared successfully.",
+        "aiUpscaleSuccess": "RapidRes cache cleared successfully.",
         "aiSuccess": "{{count}} files updated. AI tags removed.",
         "aiSuccess_one": "{{count}} file updated. AI tags removed.",
         "aiSuccess_other": "{{count}} files updated. AI tags removed.",
@@ -1885,6 +1928,8 @@
       "storage": {
         "aiDenoise": "AI Denoise",
         "aiDenoiseDesc": "Cached denoise results.",
+        "aiUpscale": "RapidRes",
+        "aiUpscaleDesc": "Cached 2x RapidRes upscales.",
         "aiMaps": "Depth & Normal Maps",
         "aiMapsDesc": "Used by Lens Blur, Fog and Relight.",
         "immich": "Immich",
@@ -1933,6 +1978,11 @@
       "title": "General Settings",
       "toolFocusMode": "Tool Focus Mode",
       "toolFocusModeDesc": "Automatically collapses the other tools in a panel when you expand one.",
+      "uiScale": "Interface Scale",
+      "uiScaleCompact": "Compact",
+      "uiScaleDefault": "Default",
+      "uiScaleDesc": "Make the interface smaller or larger, independent of your system display scaling. Compact sizes fit more on small laptop screens.",
+      "uiScaleLarge": "Large",
       "xmpSync": "XMP Metadata Sync",
       "xmpSyncDesc": "Sync ratings, color labels and tags to standard XMP sidecar files for compatibility with other photo editors."
     },
@@ -2202,15 +2252,14 @@
       "smallThumbnailRes": "Grid Thumbnail Resolution",
       "smallThumbnailResDesc": "Resolution of thumbnails shown in the library grid.",
       "staticDesc": "The editor renders the image at a fixed resolution. This mode is the fastest and most consistent, making it ideal for lower-end hardware where smooth performance is prioritized over pixel-perfect zoom.",
-      "staticPreviewRes": "Static Preview Resolution",
-      "staticPreviewResDesc": "Sets the resolution for static previews like crop mode, lens correction, and perspective tools. Does not affect the main editor preview.",
       "threads": "Threads",
       "thumbnailRes": "Thumbnail Resolution",
       "thumbnailResDesc": "Determines the resolution of generated library thumbnails. Higher values produce sharper images during loading.",
       "title": "Processing Engine",
       "wgpu": "WGPU Direct Rendering",
       "wgpuDescAndroid": "Bypasses browser encoding for instantly responsive live previews. (Disabled on Android: Native WGPU surface creation is currently not supported alongside the mobile webview.)",
-      "wgpuDescLinux": "Bypasses browser encoding for instantly responsive live previews. (Disabled on Linux: Tauri uses GTK for webviews, which conflicts with WGPU on the same X11 surface and causes flickering.)",
+      "wgpuDescLinuxExperimental": "Experimental on Linux and may be unstable.",
+      "wgpuDescLinuxX11": "Not available on X11.",
       "wgpuDescRecommended": "Bypasses browser encoding for instantly responsive live previews. Highly recommended for performance.",
       "wgpuLabel": "Enable Direct WGPU Render",
       "workerThreads": "Thumbnail Worker Threads",
@@ -2252,6 +2301,7 @@
         "mediapipe": "For the fast face landmark and segmentation models that power the AI face masks.",
         "negpy": "For the inspiration behind the negative conversion logic.",
         "nind": "For providing AI models that power the AI noise reduction capabilities in RapidRAW.",
+        "span": "For the base AI model behind RapidRes, RapidRAW's 2x AI upscaling, fine-tuned by RapidRAW on its own raw pipeline (by Philip Hofmann, CC BY 4.0).",
         "rawler": "For the excellent Rust crate that provides the foundation for RAW file processing in this project.",
         "sam2": "For providing the foundation model used for the AI subject detection capabilities.",
         "spektrafilm": "For the spectrally-based film emulation LUTs by Andrea Volpato, used to power RapidRAW's built-in film emulations. Licensed CC BY-SA 4.0.",

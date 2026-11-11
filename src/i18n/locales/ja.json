@@ -92,6 +92,7 @@
         "highlights": "ハイライト",
         "hue": "色相",
         "mix": "白黒ミックス",
+        "mixPickerTooltip": "白黒ミックスのスポイト：写真をクリックして上下にドラッグ",
         "saturation": "彩度",
         "shadows": "シャドウ",
         "strength": "強度",
@@ -150,6 +151,8 @@
       "aiDenoiseColor": "カラーノイズ",
       "classicDenoise": "クラシックノイズ除去",
       "aiDenoiseDetail": "ディテール",
+      "aiUpscale": "RapidRes 2x",
+      "aiUpscaleDetail": "ディテール",
       "blueYellow": "ブルー/イエロー",
       "centre": "中央",
       "chromaticAberration": "色収差",
@@ -165,6 +168,7 @@
       "negativeGreen": "グリーン",
       "negativeRed": "レッド",
       "noiseReduction": "ノイズ低減",
+      "superResolution": "RapidRes",
       "presence": "外観",
       "redCyan": "レッド/シアン",
       "sharpening": "シャープ",
@@ -222,7 +226,25 @@
       "roundness": "丸み",
       "size": "サイズ",
       "spatial": "空間",
-      "vignette": "周辺光量補正"
+      "vignette": "周辺光量補正",
+      "motionBlur": "モーションブラー",
+      "motionBlurAngle": "角度",
+      "motionBlurDepth": "奥行き",
+      "motionBlurHighlights": "ハイライト",
+      "motionBlurLayer": "動き",
+      "motionBlurLayers": {
+        "auto": "自動",
+        "panning": "流し撮り",
+        "subject": "被写体の動き",
+        "uniform": "均一"
+      },
+      "motionBlurType": "種類",
+      "motionBlurTypes": {
+        "linear": "直線",
+        "zoom": "ズーム",
+        "spin": "回転",
+        "smooth": "なめらか"
+      }
     }
   },
   "contextMenus": {
@@ -305,6 +327,8 @@
       "redo": "やり直し",
       "removeBlackWhite": "白黒を解除",
       "removeDenoise": "ノイズ低減を解除",
+      "superResolution": "RapidRes (2x)",
+      "removeSuperResolution": "RapidResを解除",
       "removeNegativeConversion": "ネガ反転を解除",
       "resetAdjustments": "補正設定をリセット",
       "stitchPanorama": "パノラマ写真を作成",
@@ -369,6 +393,8 @@
       "deleteSelected": "選択したもののみ削除",
       "denoise_one": "ノイズ低減",
       "denoise_other": "ノイズ低減",
+      "superResolution_one": "RapidRes (2x)",
+      "superResolution_other": "RapidRes (2x)",
       "duplicateImage": "画像を複製",
       "enable": "有効にする",
       "exportImage_one": "画像を書き出し",
@@ -463,6 +489,15 @@
         "feather": "ブラシのぼかし",
         "size": "ブラシサイズ"
       },
+      "cloneHeal": {
+        "cloneTooltip": "明るさと色を含め、ソースをそのままコピーします",
+        "dragSource": "ドラッグしてソースを移動",
+        "healTooltip": "ソースの質感をコピーし、周囲の明るさと色になじませます",
+        "hintActive": "ソースの輪郭をドラッグしてピクセルのコピー元を選びます。新しいストロークごとに個別のスポットになります。Shift を押しながら描くとこのスポットに追加されます。",
+        "hintEmpty": "シミ、電線、気になる部分の上をなぞってください。合うソースが自動で見つかります。",
+        "mode": "モード",
+        "newSource": "別のソースを探す"
+      },
       "comingSoon": "近日公開",
       "connection": {
         "backendLabel": "AI バックエンド:",
@@ -483,6 +518,7 @@
       "createNewTitle": "新しい生成編集を作成",
       "createNewTooltip": "新しい {{name}} 編集を作成",
       "denoising": "AIノイズ除去を実行中...",
+      "upscaling": "RapidResを実行中...",
       "dropzoneText": "ここにドロップして新しい編集を作成",
       "editSettingsTitle": "編集設定",
       "editsTitle": "編集一覧",
@@ -790,8 +826,7 @@
       "toggleAnalyticsTooltip": "アナリティクス表示の切り替え",
       "tooltips": {
         "addToCurrent": "{{name}}を現在のマスクに追加、または新規作成 (右クリック)",
-        "createNew": "新規の {{name}} マスクを作成",
-        "selectNewSourcePoint": "{{modifier}} + クリックで新しいソースポイントを選択"
+        "createNew": "新規の {{name}} マスクを作成"
       }
     },
     "metadata": {
@@ -934,6 +969,9 @@
   "export": {
     "advanced": {
       "exportMasks": "マスクを個別ファイルとして書き出す",
+      "exportOriginal": "オリジナルも書き出す",
+      "originalCrop": "切り抜きを適用",
+      "originalKeepExposure": "露光量を維持",
       "preserveFolders": "フォルダ構造を維持",
       "preserveTimestamps": "EXIFの撮影日時からファイルタイムスタンプを設定",
       "title": "書き出し設定"
@@ -1128,6 +1166,7 @@
       "failed": "失敗（{{failedCount}}）",
       "kinds": {
         "denoise": "AIノイズ除去中",
+        "upscale": "RapidResで拡大中",
         "depthMap": "深度を解析中",
         "depthMask": "深度マスクを生成中",
         "faceMask": "顔マスクを生成中",
@@ -1458,6 +1497,7 @@
       "linear": "線形",
       "liquify": "ゆがみ",
       "luminance": "ルミナンス",
+      "matchBrush": "マッチブラシ",
       "others": "その他",
       "quickErase": "クイック消去",
       "quickEraser": "クイック消しゴム",
@@ -1522,6 +1562,7 @@
       "descReplace": "選択したすべての設定を上書きし、残りの設定をデフォルトにリセットします。",
       "groups": {
         "aiDenoise": "AIノイズ除去",
+        "aiUpscale": "RapidRes",
         "blackWhite": "白黒",
         "chromaticAberration": "色収差",
         "clarityDehaze": "明瞭度とかすみの除去",
@@ -1536,6 +1577,7 @@
         "halationGlow": "ハレーションとグロー",
         "hueShift": "グローバル色相シフト",
         "lensBlur": "レンズぼかし",
+        "motionBlur": "モーションブラー",
         "lensCorrection": "レンズ補正",
         "lut": "LUT",
         "masks": "マスク",
@@ -1679,7 +1721,6 @@
       "selectManufacturer": "メーカーを選択",
       "title": "レンズ補正",
       "vignetting": "周辺光量",
-      "waitingAutoDetect": "自動検出を待機中...",
       "zoomInTooltip": "拡大",
       "zoomOutTooltip": "縮小"
     },
@@ -1779,7 +1820,7 @@
           "fine": "Shift で微調整"
         },
         "keys": {
-          "hold": "押し続ける",
+          "hold": "タップ / 長押し",
           "previousImage": "前の画像",
           "nextImage": "次の画像",
           "reset": "リセット",
@@ -1812,6 +1853,7 @@
       "limit": "上限",
       "modals": {
         "aiDenoiseMessage": "AIノイズ除去キャッシュを消去してもよろしいですか？\n\nAIノイズ除去が有効な画像は再度処理する必要があり、1枚あたり数分かかる場合があります。",
+        "aiUpscaleMessage": "RapidResキャッシュを消去してもよろしいですか？\n\nRapidResが有効な画像は再度拡大処理する必要があります。",
         "aiMapsMessage": "深度・法線マップをクリアしてもよろしいですか？\n\nレンズブラー、フォグ、リライトを使用している画像は、次に開いたときにマップを再生成します。",
         "aiMessage": "本当にすべてのアクティブなルートフォルダ内の画像から、AI生成されたタグをすべて削除しますか？\n\n手動で追加したタグには影響しません。この操作は取り消せません。",
         "allMessage": "本当にすべてのアクティブなルートフォルダ内の画像から、AI生成および手動追加されたタグをすべて削除しますか？\n\nこの操作は取り消せません。",
@@ -1839,6 +1881,7 @@
       "show": "表示",
       "statuses": {
         "aiDenoiseSuccess": "AIノイズ除去キャッシュを消去しました。",
+        "aiUpscaleSuccess": "RapidResキャッシュを消去しました。",
         "aiSuccess": "{{count}} 件のファイルを更新しました。AIタグを削除しました。",
         "aiSuccess_one": "{{count}} 件のファイルを更新しました。AIタグを削除しました。",
         "aiSuccess_other": "{{count}} 件のファイルを更新しました。AIタグを削除しました。",
@@ -1855,6 +1898,8 @@
       "storage": {
         "aiDenoise": "AI ノイズ除去",
         "aiDenoiseDesc": "キャッシュされたノイズ除去結果。",
+        "aiUpscale": "RapidRes",
+        "aiUpscaleDesc": "キャッシュされたRapidResの2倍拡大結果。",
         "aiMaps": "深度・法線マップ",
         "aiMapsDesc": "レンズブラー、フォグ、リライトで使用されます。",
         "immich": "Immich",
@@ -1903,6 +1948,11 @@
       "title": "全般設定",
       "toolFocusMode": "ツールフォーカスモード",
       "toolFocusModeDesc": "ツールを展開すると、同じパネル内の他のツールを自動的に折りたたみます。",
+      "uiScale": "インターフェースの拡大縮小",
+      "uiScaleCompact": "コンパクト",
+      "uiScaleDefault": "デフォルト",
+      "uiScaleDesc": "システムの表示スケーリングとは別に、インターフェースを小さく、または大きくします。コンパクトなサイズは小型ノートPCの画面に適しています。",
+      "uiScaleLarge": "大",
       "xmpSync": "XMPメタデータ同期",
       "xmpSyncDesc": "他の写真編集ソフトとの互換性のために、評価、カラーラベル、タグを標準のXMPサイドカーファイルと同期します。"
     },
@@ -2172,15 +2222,14 @@
       "smallThumbnailRes": "グリッドサムネイルの解像度",
       "smallThumbnailResDesc": "ライブラリのグリッドに表示されるサムネイルの解像度。",
       "staticDesc": "画像を固定の解像度でレンダリングします。このモードは最も軽量かつ安定しており、ズーム精度よりも軽快な動作を優先する低スペック環境に最適です。",
-      "staticPreviewRes": "静的プレビュー解像度",
-      "staticPreviewResDesc": "切り抜き、レンズ補正、変形ツールなどを使用する際のプレビュー解像度を設定します。メインエディタのプレビューには影響しません。",
       "threads": "スレッド数",
       "thumbnailRes": "サムネイル解像度",
       "thumbnailResDesc": "生成されるライブラリ用サムネイルの解像度を指定します。高い値にすると、ロード中もシャープに表示されます。",
       "title": "処理エンジン",
       "wgpu": "WGPUダイレクトレンダリング",
       "wgpuDescAndroid": "ブラウザエンコードをバイパスし、即座に反応するプレビューを実現します。（Androidでは無効: モバイルのWebview環境下でのネイティブWGPUサーフェスの作成は現在サポートされていません。）",
-      "wgpuDescLinux": "ブラウザエンコードをバイパスし、即座に反応するプレビューを実現します。（Linuxでは無効: TauriはGTKウェブビューを使用しており、同一X11サーフェス上でWGPUと競合してちらつきが発生するためです。）",
+      "wgpuDescLinuxExperimental": "Linuxでは実験的な機能で、不安定な場合があります。",
+      "wgpuDescLinuxX11": "X11では利用できません。",
       "wgpuDescRecommended": "ブラウザエンコードをバイパスし、即座に反応するライブプレビューを実現します。パフォーマンス向上のため、強く推奨します。",
       "wgpuLabel": "WGPUダイレクトレンダリングを有効化",
       "workerThreads": "サムネイルワーカー数",
@@ -2222,6 +2271,7 @@
         "mediapipe": "AI顔マスクを支える高速な顔ランドマークおよびセグメンテーションモデルに。",
         "negpy": "ネガ反転アルゴリズムのヒントとなりました。",
         "nind": "AIノイズ低減機能を支えるAIモデルを提供しています。",
+        "span": "RapidRAWのAI 2倍拡大機能RapidResのベースとなるAIモデルです。RapidRAWが独自のRAW処理に合わせてファインチューニングしています（Philip Hofmann作、CC BY 4.0）。",
         "rawler": "RAWファイル処理の基盤となる優れたRustライブラリを提供しています。",
         "sam2": "AI被写体検出機能の基盤となるモデルを提供しています。",
         "spektrafilm": "RapidRAW の内蔵フィルムエミュレーションを支える、Andrea Volpato 氏によるスペクトルベースのフィルムエミュレーション LUT を提供してくださったことに。ライセンスは CC BY-SA 4.0 です。",

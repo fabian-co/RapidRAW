@@ -8,15 +8,18 @@ use crate::file_management::{parse_virtual_path, read_file_mapped};
 use crate::formats::is_raw_file;
 use crate::image_processing::ImageMetadata;
 use crate::image_processing::{
-    apply_orientation, apply_srgb_to_linear, effective_baseline_exposure,
-    remove_raw_artifacts_and_enhance,
+    apply_orientation, apply_srgb_to_linear, effective_baseline_exposure, linear_channel_to_srgb,
 };
 use crate::mask_generation::{MaskDefinition, SubMask, generate_mask_bitmap};
 use crate::white_balance::WhiteBalance;
 use anyhow::{Context, Result, anyhow};
 use base64::{Engine as _, engine::general_purpose};
 use exif::{Reader as ExifReader, Tag};
-use image::{DynamicImage, GenericImageView, ImageReader, imageops};
+use glam::{DMat3, Mat3, Vec3};
+use image::{DynamicImage, GenericImageView, ImageDecoder, ImageReader, Rgb32FImage, imageops};
+use moxcms::{
+    ColorProfile, DataColorSpace, Layout, RenderingIntent, ToneReprCurve, TransformOptions,
+};
 use rawler::Orientation;
 use rayon::prelude::*;
 use serde::Deserialize;
@@ -31,7 +34,6 @@ use std::sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},
 };
-use std::time::Instant;
 use tauri::Manager;
 
 #[derive(serde::Serialize)]
@@ -78,14 +80,17 @@ pub fn load_and_composite(
     use_fast_raw_dev: bool,
     settings: &AppSettings,
     cancel_token: Option<(Arc<AtomicUsize>, usize)>,
-) -> Result<DynamicImage> {
+) -> Result<(DynamicImage, f32)> {
     let base_image =
         load_base_image_from_bytes(base_image, path, use_fast_raw_dev, settings, cancel_token)?;
     let prepared = match prepare_base_image_cow(&base_image, path, adjustments)? {
         Cow::Owned(img) => Some(img),
         Cow::Borrowed(_) => None,
     };
-    Ok(prepared.unwrap_or(base_image))
+    let scale = prepared.as_ref().map_or(1.0, |img| {
+        crate::ai_upscale::scale_between(&base_image, img)
+    });
+    Ok((prepared.unwrap_or(base_image), scale))
 }
 
 pub fn prepare_base_image_cow<'a>(
@@ -99,9 +104,10 @@ pub fn prepare_base_image_cow<'a>(
         .is_some_and(|a| !a.is_empty());
 
     let denoised = crate::ai_denoise::apply_ai_denoise(base_image, path, adjustments);
-    match crate::negative_conversion::apply_negative_conversion(denoised, adjustments) {
+    let upscaled = crate::ai_upscale::apply_ai_upscale(base_image, denoised, path, adjustments);
+    match crate::negative_conversion::apply_negative_conversion(upscaled, adjustments) {
         Cow::Owned(prepared) if !has_patches => Ok(Cow::Owned(prepared)),
-        prepared => composite_patches_cow(prepared, adjustments),
+        prepared => composite_patches_cow(prepared, base_image.dimensions(), path, adjustments),
     }
 }
 
@@ -154,26 +160,12 @@ pub fn load_base_image_from_bytes(
                 use_fast_raw_dev,
                 highlight_compression,
                 linear_mode,
+                color_nr_amount,
+                sharpening_amount,
                 cancel_token,
             )
         }) {
-            Ok(Ok(mut image)) => {
-                if !use_fast_raw_dev && (color_nr_amount > 0.0 || sharpening_amount > 0.0) {
-                    let start = Instant::now();
-                    remove_raw_artifacts_and_enhance(
-                        &mut image,
-                        color_nr_amount,
-                        sharpening_amount,
-                    );
-                    let duration = start.elapsed();
-                    log::info!(
-                        "Raw enhancing for '{}' took {:?}",
-                        path_for_ext_check,
-                        duration
-                    );
-                }
-                Ok(image)
-            }
+            Ok(Ok(image)) => Ok(image),
             Ok(Err(e)) => {
                 let classified = classify_raw_develop_error(path_for_ext_check, e);
 
@@ -217,23 +209,12 @@ pub fn load_base_image_from_bytes(
             }
         }
     } else {
-        let mut image = load_image_with_orientation(bytes, cancel_token)?;
-
-        if apply_to_non_raws
-            && !use_fast_raw_dev
-            && (color_nr_amount > 0.0 || sharpening_amount > 0.0)
-        {
-            let start = Instant::now();
-            remove_raw_artifacts_and_enhance(&mut image, color_nr_amount, sharpening_amount);
-            let duration = start.elapsed();
-            log::info!(
-                "Enhancing non-RAW '{}' took {:?}",
-                path_for_ext_check,
-                duration
-            );
+        let image = load_image_with_orientation(bytes, cancel_token)?;
+        if apply_to_non_raws && !use_fast_raw_dev {
+            crate::develop::enhance(image, color_nr_amount, sharpening_amount)
+        } else {
+            Ok(image)
         }
-
-        Ok(image)
     }
 }
 
@@ -409,31 +390,153 @@ pub fn load_image_with_orientation(
 
     check_cancel()?;
 
-    let image = reader.decode().context("Failed to decode image")?;
+    let mut decoder = reader.into_decoder().context("Failed to decode image")?;
+    let icc_profile = decoder.icc_profile().ok().flatten();
+    let image = DynamicImage::from_decoder(decoder).context("Failed to decode image")?;
     check_cancel()?;
 
-    let oriented_image = {
-        let exif_reader = ExifReader::new();
-        if let Ok(exif) = exif_reader.read_from_container(&mut cursor.clone()) {
-            if let Some(orientation) = exif
-                .get_field(Tag::Orientation, exif::In::PRIMARY)
-                .and_then(|f| f.value.get_uint(0))
-            {
-                check_cancel()?;
-                apply_orientation(image, Orientation::from_u16(orientation as u16))
-            } else {
-                image
-            }
-        } else {
-            image
-        }
+    let exif = ExifReader::new()
+        .read_from_container(&mut cursor.clone())
+        .ok();
+    let orientation = exif.as_ref().and_then(|exif| {
+        exif.get_field(Tag::Orientation, exif::In::PRIMARY)?
+            .value
+            .get_uint(0)
+    });
+    let oriented_image = match orientation {
+        Some(orientation) => apply_orientation(image, Orientation::from_u16(orientation as u16)),
+        None => image,
     };
 
-    Ok(DynamicImage::ImageRgb32F(oriented_image.to_rgb32f()))
+    let mut rgb = oriented_image.to_rgb32f();
+    let source_profile = match icc_profile {
+        Some(icc) => ColorProfile::new_from_slice(&icc).ok(),
+        None => exif
+            .as_ref()
+            .is_some_and(is_exif_adobe_rgb)
+            .then(ColorProfile::new_adobe_rgb),
+    };
+    if let Some(profile) = source_profile {
+        check_cancel()?;
+        convert_profile_to_srgb(&mut rgb, &profile);
+    }
+
+    Ok(DynamicImage::ImageRgb32F(rgb))
+}
+
+fn is_exif_adobe_rgb(exif: &exif::Exif) -> bool {
+    let uncalibrated = exif
+        .get_field(Tag::ColorSpace, exif::In::PRIMARY)
+        .and_then(|f| f.value.get_uint(0))
+        == Some(0xFFFF);
+    let interop_r03 = exif
+        .get_field(Tag::InteroperabilityIndex, exif::In::PRIMARY)
+        .is_some_and(|f| f.display_value().to_string().contains("R03"));
+    uncalibrated && interop_r03
+}
+
+fn with_linear_trc(mut profile: ColorProfile) -> ColorProfile {
+    let identity = ToneReprCurve::Lut(Vec::new());
+    profile.red_trc = Some(identity.clone());
+    profile.green_trc = Some(identity.clone());
+    profile.blue_trc = Some(identity);
+    profile.cicp = None;
+    profile
+}
+
+fn colorants(profile: &ColorProfile) -> DMat3 {
+    DMat3::from_cols_array_2d(&profile.colorant_matrix().v).transpose()
+}
+
+fn convert_profile_to_srgb(image: &mut Rgb32FImage, source: &ColorProfile) {
+    if source.color_space != DataColorSpace::Rgb || image.width() == 0 {
+        return;
+    }
+    let srgb = ColorProfile::new_srgb();
+    let (target, to_srgb) = if source.is_matrix_shaper() {
+        let matrix = (colorants(&srgb).inverse() * colorants(source)).as_mat3();
+        (with_linear_trc(source.clone()), matrix)
+    } else {
+        (with_linear_trc(srgb), Mat3::IDENTITY)
+    };
+
+    let options = TransformOptions {
+        rendering_intent: RenderingIntent::RelativeColorimetric,
+        ..TransformOptions::default()
+    };
+    let Ok(transform) = source.create_transform_f32(Layout::Rgb, &target, Layout::Rgb, options)
+    else {
+        log::warn!("Unsupported embedded color profile, assuming sRGB");
+        return;
+    };
+    let to_linear_srgb = |src: &[f32], dst: &mut [f32]| {
+        transform.transform(src, dst)?;
+        for rgb in dst.as_chunks_mut::<3>().0 {
+            *rgb = (to_srgb * Vec3::from_array(*rgb)).to_array();
+        }
+        Ok::<_, moxcms::CmsError>(())
+    };
+
+    const STEPS: usize = 16;
+    let probe: Vec<f32> = (0..(STEPS + 1).pow(3))
+        .flat_map(|i| {
+            [
+                i % (STEPS + 1),
+                i / (STEPS + 1) % (STEPS + 1),
+                i / (STEPS + 1).pow(2),
+            ]
+            .map(|c| c as f32 / STEPS as f32)
+        })
+        .collect();
+    let mut probe_out = vec![0.0f32; probe.len()];
+    if to_linear_srgb(&probe, &mut probe_out).is_err() {
+        return;
+    }
+    let is_srgb = probe.iter().zip(&probe_out).all(|(input, linear)| {
+        (linear_channel_to_srgb(*linear).min(1.0) - input).abs() < 2.0 / 255.0
+    });
+    if is_srgb {
+        return;
+    }
+
+    let row_len = image.width() as usize * 3;
+    let mut linear = vec![0.0f32; image.as_raw().len()];
+    let converted = linear
+        .par_chunks_mut(row_len)
+        .zip(image.as_raw().par_chunks(row_len))
+        .try_for_each(|(dst, src)| to_linear_srgb(src, dst));
+    if converted.is_err() {
+        log::warn!("Failed to apply embedded color profile, assuming sRGB");
+        return;
+    }
+
+    image
+        .as_mut()
+        .par_chunks_exact_mut(3)
+        .zip(linear.par_chunks_exact(3))
+        .for_each(|(out, rgb)| {
+            let peak = rgb[0].max(rgb[1]).max(rgb[2]);
+            if peak <= 0.0 {
+                out.fill(0.0);
+                return;
+            }
+            let floor = rgb[0].min(rgb[1]).min(rgb[2]);
+            let saturation = if floor < 0.0 {
+                peak / (peak - floor)
+            } else {
+                1.0
+            };
+            let scale = peak.max(1.0);
+            for (o, c) in out.iter_mut().zip(rgb) {
+                *o = linear_channel_to_srgb((peak - (peak - c) * saturation) / scale);
+            }
+        });
 }
 
 fn composite_patches_cow<'a>(
     base_image: Cow<'a, DynamicImage>,
+    (canon_w, canon_h): (u32, u32),
+    path: &str,
     current_adjustments: &Value,
 ) -> Result<Cow<'a, DynamicImage>> {
     let patches_val = match current_adjustments.get("aiPatches") {
@@ -469,6 +572,7 @@ fn composite_patches_cow<'a>(
     }
 
     let (base_w, base_h) = base_image.dimensions();
+    let scale = (base_w / canon_w.max(1)).max(1);
 
     struct DecodedPatch {
         offset_x: Option<u32>,
@@ -504,8 +608,8 @@ fn composite_patches_cow<'a>(
             {
                 let mask_bytes = general_purpose::STANDARD.decode(mask_b64)?;
                 let mask_img = image::load_from_memory(&mask_bytes)?.into_luma8();
-                if !is_cropped && (mask_img.width() != base_w || mask_img.height() != base_h) {
-                    imageops::resize(&mask_img, base_w, base_h, imageops::FilterType::Lanczos3)
+                if !is_cropped && (mask_img.width() != canon_w || mask_img.height() != canon_h) {
+                    imageops::resize(&mask_img, canon_w, canon_h, imageops::FilterType::Lanczos3)
                 } else {
                     mask_img
                 }
@@ -528,31 +632,34 @@ fn composite_patches_cow<'a>(
                     .and_then(|v| v.as_u64())
                     .unwrap_or(0) as u8;
                 let (trans_w, trans_h) = if orientation_steps % 2 == 1 {
-                    (base_h, base_w)
+                    (canon_h, canon_w)
                 } else {
-                    (base_w, base_h)
+                    (canon_w, canon_h)
                 };
 
                 let mut gen_mask =
                     generate_mask_bitmap(&mask_def, trans_w, trans_h, 1.0, (0.0, 0.0), None)
                         .context("Failed to generate mask from sub_masks for compositing")?;
 
-                gen_mask =
-                    crate::image_processing::inverse_transform_mask(gen_mask, current_adjustments);
+                gen_mask = crate::image_processing::inverse_transform_mask(
+                    gen_mask,
+                    path,
+                    current_adjustments,
+                );
 
                 if let (Some(ox), Some(oy)) = (offset_x, offset_y) {
                     let w = patch_data
                         .get("width")
                         .and_then(|v| v.as_u64())
                         .map(|v| v as u32)
-                        .unwrap_or(base_w);
+                        .unwrap_or(canon_w);
                     let h = patch_data
                         .get("height")
                         .and_then(|v| v.as_u64())
                         .map(|v| v as u32)
-                        .unwrap_or(base_h);
-                    let crop_w = w.min(base_w.saturating_sub(ox));
-                    let crop_h = h.min(base_h.saturating_sub(oy));
+                        .unwrap_or(canon_h);
+                    let crop_w = w.min(canon_w.saturating_sub(ox));
+                    let crop_h = h.min(canon_h.saturating_sub(oy));
                     gen_mask = imageops::crop_imm(&gen_mask, ox, oy, crop_w, crop_h).to_image();
                 }
                 gen_mask
@@ -566,20 +673,31 @@ fn composite_patches_cow<'a>(
             let color_image_u8 = image::load_from_memory(&color_bytes)?.into_rgb8();
 
             let (patch_w, patch_h) = color_image_u8.dimensions();
-            let final_color = if !is_cropped && (base_w != patch_w || base_h != patch_h) {
+            let final_color = if !is_cropped && (canon_w != patch_w || canon_h != patch_h) {
                 imageops::resize(
                     &color_image_u8,
-                    base_w,
-                    base_h,
+                    canon_w,
+                    canon_h,
                     imageops::FilterType::Lanczos3,
                 )
             } else {
                 color_image_u8
             };
 
+            let (mask_bitmap, final_color) = if scale == 1 {
+                (mask_bitmap, final_color)
+            } else {
+                let (w, h) = mask_bitmap.dimensions();
+                let (sw, sh) = (w * scale, h * scale);
+                (
+                    imageops::resize(&mask_bitmap, sw, sh, imageops::FilterType::Triangle),
+                    imageops::resize(&final_color, sw, sh, imageops::FilterType::CatmullRom),
+                )
+            };
+
             Ok(DecodedPatch {
-                offset_x,
-                offset_y,
+                offset_x: offset_x.map(|v| v * scale),
+                offset_y: offset_y.map(|v| v * scale),
                 mask: mask_bitmap,
                 color: final_color,
                 is_srgb_encoded,
@@ -863,6 +981,62 @@ fn is_cancelled(cancel_token: &Option<(Arc<AtomicUsize>, usize)>) -> bool {
         .is_some_and(|(tracker, generation)| tracker.load(Ordering::SeqCst) != *generation)
 }
 
+pub fn decode_pristine(
+    source_path: &Path,
+    path_str: &str,
+    settings: &AppSettings,
+    cancel_token: Option<(Arc<AtomicUsize>, usize)>,
+) -> Result<(DynamicImage, HashMap<String, String>), String> {
+    if crate::file_management::is_cloud_placeholder(source_path) {
+        return Err(format!(
+            "'{}' is stored in iCloud and hasn't been downloaded yet. Download it in Finder, then try again.",
+            path_str
+        ));
+    }
+    let decode = |bytes: &[u8]| -> Result<(DynamicImage, HashMap<String, String>), String> {
+        if is_cancelled(&cancel_token) {
+            return Err("Load cancelled".to_string());
+        }
+        let image =
+            load_base_image_from_bytes(bytes, path_str, false, settings, cancel_token.clone())
+                .map_err(|e| e.to_string())?;
+        crate::as_shot::as_shot_from_bytes(path_str, bytes);
+        Ok((image, exif_processing::read_exif_data(path_str, bytes)))
+    };
+    match read_file_mapped(source_path) {
+        Ok(mmap) => decode(&mmap),
+        Err(e) => {
+            log::warn!(
+                "Failed to memory-map file '{}': {}. Falling back to standard read.",
+                path_str,
+                e
+            );
+            let bytes = fs::read(source_path)
+                .map_err(|io_err| format!("Fallback read failed for {}: {}", path_str, io_err))?;
+            decode(&bytes)
+        }
+    }
+}
+
+pub fn cache_pristine(
+    state: &AppState,
+    path_str: String,
+    fingerprint: Option<DecodeFingerprint>,
+    image: DynamicImage,
+    exif: HashMap<String, String>,
+) -> (Arc<DynamicImage>, HashMap<String, String>) {
+    let image = Arc::new(image);
+    if let Some(fp) = fingerprint {
+        state.decoded_image_cache.lock().unwrap().insert(
+            path_str,
+            fp,
+            Arc::clone(&image),
+            exif.clone(),
+        );
+    }
+    (image, exif)
+}
+
 pub fn get_or_decode_pristine(
     state: &AppState,
     source_path: &Path,
@@ -871,10 +1045,13 @@ pub fn get_or_decode_pristine(
 ) -> Result<(Arc<DynamicImage>, HashMap<String, String>), String> {
     let path_str = source_path.to_string_lossy().to_string();
     let fingerprint = DecodeFingerprint::for_file(source_path, settings);
+    let cached = || {
+        fingerprint
+            .as_ref()
+            .and_then(|fp| state.decoded_image_cache.lock().unwrap().get(&path_str, fp))
+    };
     loop {
-        if let Some(fp) = &fingerprint
-            && let Some(hit) = state.decoded_image_cache.lock().unwrap().get(&path_str, fp)
-        {
+        if let Some(hit) = cached() {
             return Ok(hit);
         }
         if is_cancelled(&cancel_token) {
@@ -887,48 +1064,12 @@ pub fn get_or_decode_pristine(
             }
             FlightRole::Leader(guard) => guard,
         };
-
-        if crate::file_management::is_cloud_placeholder(source_path) {
-            return Err(format!(
-                "'{}' is stored in iCloud and hasn't been downloaded yet. Download it in Finder, then try again.",
-                path_str
-            ));
+        if let Some(hit) = cached() {
+            return Ok(hit);
         }
-        let decode = |bytes: &[u8]| -> Result<(DynamicImage, HashMap<String, String>), String> {
-            if is_cancelled(&cancel_token) {
-                return Err("Load cancelled".to_string());
-            }
-            let image =
-                load_base_image_from_bytes(bytes, &path_str, false, settings, cancel_token.clone())
-                    .map_err(|e| e.to_string())?;
-            crate::as_shot::as_shot_from_bytes(&path_str, bytes);
-            Ok((image, exif_processing::read_exif_data(&path_str, bytes)))
-        };
-        let (image, exif) = match read_file_mapped(source_path) {
-            Ok(mmap) => decode(&mmap)?,
-            Err(e) => {
-                log::warn!(
-                    "Failed to memory-map file '{}': {}. Falling back to standard read.",
-                    path_str,
-                    e
-                );
-                let bytes = fs::read(source_path).map_err(|io_err| {
-                    format!("Fallback read failed for {}: {}", path_str, io_err)
-                })?;
-                decode(&bytes)?
-            }
-        };
 
-        let image = Arc::new(image);
-        if let Some(fp) = fingerprint {
-            state.decoded_image_cache.lock().unwrap().insert(
-                path_str,
-                fp,
-                Arc::clone(&image),
-                exif.clone(),
-            );
-        }
-        return Ok((image, exif));
+        let (image, exif) = decode_pristine(source_path, &path_str, settings, cancel_token)?;
+        return Ok(cache_pristine(state, path_str, fingerprint, image, exif));
     }
 }
 
@@ -956,6 +1097,10 @@ pub async fn load_image(
     state: tauri::State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<LoadImageResult, String> {
+    let (source_path, sidecar_path) = parse_virtual_path(&path);
+    let source_path_str = source_path.to_string_lossy().to_string();
+    let _preload_guard = state.image_preloader.begin_load(&source_path_str);
+
     let my_generation = state.load_image_generation.fetch_add(1, Ordering::SeqCst) + 1;
     let cancel_token = Some((state.load_image_generation.clone(), my_generation));
 
@@ -984,7 +1129,7 @@ pub async fn load_image(
             .unwrap_or_else(|e| e.into_inner())
             .clear();
         state
-            .geometry_cache
+            .uncropped_source_cache
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .clear();
@@ -995,9 +1140,6 @@ pub async fn load_image(
             .lock()
             .unwrap_or_else(|e| e.into_inner()) = None;
     }
-
-    let (source_path, sidecar_path) = parse_virtual_path(&path);
-    let source_path_str = source_path.to_string_lossy().to_string();
 
     crate::immich::ensure_local(&app_handle, &source_path).await?;
 
@@ -1010,7 +1152,7 @@ pub async fn load_image(
         .decoded_image_cache
         .lock()
         .unwrap()
-        .compact_except(&source_path_str);
+        .promote(&source_path_str);
 
     let (pristine_arc, exif_data) = {
         let app_handle = app_handle.clone();

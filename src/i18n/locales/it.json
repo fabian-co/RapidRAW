@@ -92,6 +92,7 @@
         "highlights": "Luci",
         "hue": "Tonalità",
         "mix": "Mixer B/N",
+        "mixPickerTooltip": "Contagocce del Mixer B/N: fai clic e trascina in alto o in basso sulla foto",
         "saturation": "Saturazione",
         "shadows": "Ombre",
         "strength": "Intensità",
@@ -150,6 +151,8 @@
       "aiDenoiseColor": "Rumore colore",
       "classicDenoise": "Riduzione rumore classica",
       "aiDenoiseDetail": "Dettaglio",
+      "aiUpscale": "RapidRes 2x",
+      "aiUpscaleDetail": "Dettaglio",
       "blueYellow": "Blu/Giallo",
       "centre": "Centro",
       "chromaticAberration": "Aberrazione Cromatica",
@@ -165,6 +168,7 @@
       "negativeGreen": "Verde",
       "negativeRed": "Rosso",
       "noiseReduction": "Riduzione Rumore",
+      "superResolution": "RapidRes",
       "presence": "Presenza",
       "redCyan": "Rosso/Ciano",
       "sharpening": "Aumento Nitidezza",
@@ -222,7 +226,25 @@
       "roundness": "Rotondità",
       "size": "Dimensione",
       "spatial": "Spaziale",
-      "vignette": "Vignettatura"
+      "vignette": "Vignettatura",
+      "motionBlur": "Sfocatura di movimento",
+      "motionBlurAngle": "Angolo",
+      "motionBlurDepth": "Profondità",
+      "motionBlurHighlights": "Luci",
+      "motionBlurLayer": "Movimento",
+      "motionBlurLayers": {
+        "auto": "Automatico",
+        "panning": "Panning",
+        "subject": "Soggetto in movimento",
+        "uniform": "Uniforme"
+      },
+      "motionBlurType": "Tipo",
+      "motionBlurTypes": {
+        "linear": "Lineare",
+        "zoom": "Zoom",
+        "spin": "Rotazione",
+        "smooth": "Morbido"
+      }
     }
   },
   "contextMenus": {
@@ -306,6 +328,8 @@
       "redo": "Ripeti",
       "removeBlackWhite": "Rimuovi Bianco e Nero",
       "removeDenoise": "Rimuovi Riduzione Rumore",
+      "superResolution": "RapidRes (2x)",
+      "removeSuperResolution": "Rimuovi RapidRes",
       "removeNegativeConversion": "Rimuovi Conversione Negativo",
       "resetAdjustments": "Ripristina Regolazioni",
       "stitchPanorama": "Unisci Panorama",
@@ -381,6 +405,9 @@
       "denoise_many": "Riduci Rumore",
       "denoise_one": "Riduci Rumore",
       "denoise_other": "Riduci Rumore",
+      "superResolution_many": "RapidRes (2x)",
+      "superResolution_one": "RapidRes (2x)",
+      "superResolution_other": "RapidRes (2x)",
       "duplicateImage": "Duplica Immagine",
       "enable": "Attiva",
       "exportImage_many": "Esporta {{count}} Immagini",
@@ -480,6 +507,15 @@
         "feather": "Sfumatura Pennello",
         "size": "Dimensione Pennello"
       },
+      "cloneHeal": {
+        "cloneTooltip": "Copia la sorgente esattamente, inclusi luminosità e colore",
+        "dragSource": "Trascina per spostare la sorgente",
+        "healTooltip": "Copia la texture della sorgente e la adatta a luminosità e colore circostanti",
+        "hintActive": "Trascina il contorno della sorgente per scegliere da dove provengono i pixel. Ogni nuovo tratto diventa un'area separata. Tieni premuto Maiusc per aggiungere a questa.",
+        "hintEmpty": "Dipingi su una macchia, un cavo o un elemento di disturbo. Una sorgente adatta viene trovata automaticamente.",
+        "mode": "Modalità",
+        "newSource": "Trova un'altra sorgente"
+      },
       "comingSoon": "Prossimamente",
       "connection": {
         "backendLabel": "Backend AI:",
@@ -500,6 +536,7 @@
       "createNewTitle": "Crea Nuova Modifica Generativa",
       "createNewTooltip": "Crea Nuova Modifica {{name}}",
       "denoising": "Riduzione rumore IA in corso...",
+      "upscaling": "RapidRes in corso...",
       "dropzoneText": "Rilascia qui per creare una nuova modifica",
       "editSettingsTitle": "Impostazioni Modifica",
       "editsTitle": "Modifiche",
@@ -817,8 +854,7 @@
       "toggleAnalyticsTooltip": "Attiva/Disattiva Visualizzazione Analitiche",
       "tooltips": {
         "addToCurrent": "Aggiungi {{name}} alla Maschera Attuale o Crea Nuova (Tasto Destro)",
-        "createNew": "Crea Nuova Maschera {{name}}",
-        "selectNewSourcePoint": "{{modifier}} + Clic per selezionare un nuovo punto di origine"
+        "createNew": "Crea Nuova Maschera {{name}}"
       }
     },
     "metadata": {
@@ -961,6 +997,9 @@
   "export": {
     "advanced": {
       "exportMasks": "Esporta maschere come file separati",
+      "exportOriginal": "Esporta anche l'originale",
+      "originalCrop": "Applica ritaglio",
+      "originalKeepExposure": "Mantieni esposizione",
       "preserveFolders": "Mantieni Struttura Cartelle",
       "preserveTimestamps": "Imposta Timestamp File dalla Data di Acquisizione EXIF",
       "title": "Impostazioni di Esportazione"
@@ -1157,6 +1196,7 @@
       "failed": "Non riusciti ({{failedCount}})",
       "kinds": {
         "denoise": "Riduzione rumore IA",
+        "upscale": "Ingrandimento RapidRes",
         "depthMap": "Analisi della profondità",
         "depthMask": "Generazione maschera profondità",
         "faceMask": "Generazione maschera viso",
@@ -1496,6 +1536,7 @@
       "linear": "Lineare",
       "liquify": "Fluidifica",
       "luminance": "Luminanza",
+      "matchBrush": "Pennello di corrispondenza",
       "others": "Altri",
       "quickErase": "Cancellazione Rapida",
       "quickEraser": "Gomma Rapida",
@@ -1560,6 +1601,7 @@
       "descReplace": "Sovrascrive tutte le impostazioni selezionate, ripristinando il resto ai valori predefiniti.",
       "groups": {
         "aiDenoise": "Riduzione rumore IA",
+        "aiUpscale": "RapidRes",
         "blackWhite": "Bianco e nero",
         "chromaticAberration": "Aberrazione Cromatica",
         "clarityDehaze": "Chiarezza e Rimozione Foschia",
@@ -1574,6 +1616,7 @@
         "halationGlow": "Alonatura e Bagliore",
         "hueShift": "Spostamento tonalità globale",
         "lensBlur": "Sfocatura obiettivo",
+        "motionBlur": "Sfocatura di movimento",
         "lensCorrection": "Correzione Obiettivo",
         "lut": "LUT",
         "masks": "Maschere",
@@ -1721,7 +1764,6 @@
       "selectManufacturer": "Seleziona Produttore",
       "title": "Correzione Obiettivo",
       "vignetting": "Vignettatura",
-      "waitingAutoDetect": "In attesa del Rilevamento Automatico...",
       "zoomInTooltip": "Ingrandisci",
       "zoomOutTooltip": "Riduci"
     },
@@ -1823,7 +1865,7 @@
           "fine": "Maiusc per precisione"
         },
         "keys": {
-          "hold": "Tieni premuto",
+          "hold": "Premi / Tieni",
           "previousImage": "Immagine prec.",
           "nextImage": "Immagine succ.",
           "reset": "Reimposta",
@@ -1856,6 +1898,7 @@
       "limit": "Limite",
       "modals": {
         "aiDenoiseMessage": "Vuoi davvero svuotare la cache della riduzione rumore IA?\n\nLe immagini con la riduzione rumore IA attiva dovranno essere elaborate di nuovo, operazione che può richiedere diversi minuti per immagine.",
+        "aiUpscaleMessage": "Vuoi davvero svuotare la cache di RapidRes?\n\nLe immagini con RapidRes attivo dovranno essere ingrandite di nuovo.",
         "aiMapsMessage": "Vuoi davvero svuotare le mappe di profondità e normali?\n\nLe immagini che usano sfocatura obiettivo, nebbia o reilluminazione rigenereranno le mappe alla prossima apertura.",
         "aiMessage": "Sei sicuro di voler rimuovere tutti i tag generati dall'AI da tutte le immagini in tutte le cartelle principali attive?\n\nQuesto non influirà sui tag aggiunti dall'utente. Questa azione non può essere annullata.",
         "allMessage": "Sei sicuro di voler rimuovere tutti i tag generati dall'AI e aggiunti dall'utente da tutte le immagini in tutte le cartelle principali attive?\n\nQuesta azione non può essere annullata.",
@@ -1883,6 +1926,7 @@
       "show": "Mostra",
       "statuses": {
         "aiDenoiseSuccess": "Cache della riduzione rumore IA svuotata correttamente.",
+        "aiUpscaleSuccess": "Cache di RapidRes svuotata correttamente.",
         "aiSuccess": "{{count}} file aggiornati. Tag AI rimossi.",
         "aiSuccess_many": "{{count}} file aggiornati. Tag AI rimossi.",
         "aiSuccess_one": "{{count}} file aggiornato. Tag AI rimossi.",
@@ -1902,6 +1946,8 @@
       "storage": {
         "aiDenoise": "Riduzione rumore IA",
         "aiDenoiseDesc": "Risultati della riduzione rumore in cache.",
+        "aiUpscale": "RapidRes",
+        "aiUpscaleDesc": "Ingrandimenti 2x di RapidRes in cache.",
         "aiMaps": "Mappe di profondità e normali",
         "aiMapsDesc": "Usate da sfocatura obiettivo, nebbia e reilluminazione.",
         "immich": "Immich",
@@ -1950,6 +1996,11 @@
       "title": "Impostazioni Generali",
       "toolFocusMode": "Modalità Focus Strumenti",
       "toolFocusModeDesc": "Comprime automaticamente gli altri strumenti di un pannello quando ne espandi uno.",
+      "uiScale": "Scala dell'interfaccia",
+      "uiScaleCompact": "Compatta",
+      "uiScaleDefault": "Predefinita",
+      "uiScaleDesc": "Rimpicciolisci o ingrandisci l'interfaccia, indipendentemente dal ridimensionamento dello schermo del sistema. Le dimensioni compatte mostrano più contenuti sugli schermi piccoli dei portatili.",
+      "uiScaleLarge": "Grande",
       "xmpSync": "Sincronizzazione Metadati XMP",
       "xmpSyncDesc": "Sincronizza valutazioni, etichette colore e tag nei file sidecar XMP standard per la compatibilità con altri editor fotografici."
     },
@@ -2219,15 +2270,14 @@
       "smallThumbnailRes": "Risoluzione delle miniature della griglia",
       "smallThumbnailResDesc": "Risoluzione delle miniature mostrate nella griglia della libreria.",
       "staticDesc": "L'editor renderizza l'immagine a una risoluzione fissa. Questa modalità è la più veloce e coerente, rendendola ideale per hardware meno potenti dove si privilegia una prestazione fluida rispetto a uno zoom perfetto al pixel.",
-      "staticPreviewRes": "Risoluzione Anteprima Statica",
-      "staticPreviewResDesc": "Imposta la risoluzione per le anteprime statiche come la modalità ritaglio, la correzione obiettivo e gli strumenti di prospettiva. Non influisce sull'anteprima principale dell'editor.",
       "threads": "Thread",
       "thumbnailRes": "Risoluzione Miniatura",
       "thumbnailResDesc": "Determina la risoluzione delle miniature della libreria generate. Valori più alti producono immagini più nitide durante il caricamento.",
       "title": "Motore di Elaborazione",
       "wgpu": "Direct Rendering WGPU",
       "wgpuDescAndroid": "Bypassa la codifica del browser per anteprime dal vivo immediatamente reattive. (Disabilitato su Android: la creazione nativa della superficie WGPU non è attualmente supportata insieme alla webview mobile.)",
-      "wgpuDescLinux": "Bypassa la codifica del browser per anteprime dal vivo immediatamente reattive. (Disabilitato su Linux: Tauri usa GTK per le webview, che è in conflitto con WGPU sulla stessa superficie X11 e causa sfarfallio.)",
+      "wgpuDescLinuxExperimental": "Sperimentale su Linux e potrebbe essere instabile.",
+      "wgpuDescLinuxX11": "Non disponibile su X11.",
       "wgpuDescRecommended": "Bypassa la codifica del browser per anteprime dal vivo immediatamente reattive. Altamente raccomandato per le prestazioni.",
       "wgpuLabel": "Abilita Rendering WGPU Diretto",
       "workerThreads": "Thread di Lavoro Miniature",
@@ -2269,6 +2319,7 @@
         "mediapipe": "Per i rapidi modelli di punti del viso e segmentazione che alimentano le maschere viso IA.",
         "negpy": "Per l'ispirazione dietro alla logica di conversione dei negativi.",
         "nind": "Per aver fornito i modelli AI che alimentano le capacità di riduzione del rumore AI in RapidRAW.",
+        "span": "Per il modello IA di base di RapidRes, l'ingrandimento 2x con IA di RapidRAW, perfezionato da RapidRAW sulla propria elaborazione RAW (di Philip Hofmann, CC BY 4.0).",
         "rawler": "Per l'eccellente crate Rust che fornisce le basi per l'elaborazione dei file RAW in questo progetto.",
         "sam2": "Per aver fornito il modello fondamentale usato per le funzionalità di rilevamento del soggetto tramite AI.",
         "spektrafilm": "Per le LUT di emulazione pellicola su base spettrale di Andrea Volpato, che alimentano le emulazioni integrate di RapidRAW. Concesse in licenza CC BY-SA 4.0.",

@@ -92,6 +92,7 @@
         "highlights": "Lichter",
         "hue": "Farbton",
         "mix": "S/W-Mischer",
+        "mixPickerTooltip": "S/W-Mischer-Pipette: Auf das Foto klicken und nach oben oder unten ziehen",
         "saturation": "Sättigung",
         "shadows": "Tiefen",
         "strength": "Stärke",
@@ -150,6 +151,8 @@
       "aiDenoiseColor": "Farbrauschen",
       "classicDenoise": "Klassisches Entrauschen",
       "aiDenoiseDetail": "Details",
+      "aiUpscale": "RapidRes 2x",
+      "aiUpscaleDetail": "Details",
       "blueYellow": "Blau/Gelb",
       "centre": "Zentriert",
       "chromaticAberration": "Chromatische Aberration",
@@ -165,6 +168,7 @@
       "negativeGreen": "Grün",
       "negativeRed": "Rot",
       "noiseReduction": "Rauschreduzierung",
+      "superResolution": "RapidRes",
       "presence": "Präsenz",
       "redCyan": "Rot/Cyan",
       "sharpening": "Schärfen",
@@ -194,6 +198,24 @@
       "lightFlares": "Blendenflecke",
       "lut": "LUT",
       "midpoint": "Mittelpunkt",
+      "motionBlur": "Bewegungsunschärfe",
+      "motionBlurAngle": "Winkel",
+      "motionBlurDepth": "Tiefe",
+      "motionBlurHighlights": "Lichter",
+      "motionBlurLayer": "Bewegung",
+      "motionBlurLayers": {
+        "auto": "Automatisch",
+        "panning": "Mitziehen",
+        "subject": "Bewegtes Motiv",
+        "uniform": "Gleichmäßig"
+      },
+      "motionBlurType": "Typ",
+      "motionBlurTypes": {
+        "linear": "Linear",
+        "zoom": "Zoom",
+        "spin": "Drehung",
+        "smooth": "Weich"
+      },
       "relight": "Neu beleuchten",
       "relightAddLight": "Licht hinzufügen",
       "relightAmbient": "Umgebungslicht",
@@ -305,6 +327,8 @@
       "redo": "Wiederholen",
       "removeBlackWhite": "Schwarzweiß entfernen",
       "removeDenoise": "Entrauschen entfernen",
+      "superResolution": "RapidRes (2x)",
+      "removeSuperResolution": "RapidRes entfernen",
       "removeNegativeConversion": "Negativumwandlung entfernen",
       "resetAdjustments": "Einstellungen zurücksetzen",
       "stitchPanorama": "Panorama zusammenfügen",
@@ -369,6 +393,8 @@
       "deleteSelected": "Nur Ausgewählte löschen",
       "denoise_one": "Entrauschen",
       "denoise_other": "Entrauschen",
+      "superResolution_one": "RapidRes (2x)",
+      "superResolution_other": "RapidRes (2x)",
       "duplicateImage": "Bild duplizieren",
       "enable": "Aktivieren",
       "exportImage_one": "Bild exportieren",
@@ -463,6 +489,15 @@
         "feather": "Weiche Kante",
         "size": "Pinselgröße"
       },
+      "cloneHeal": {
+        "cloneTooltip": "Kopiert die Quelle exakt, inklusive Helligkeit und Farbe",
+        "dragSource": "Ziehen, um die Quelle zu verschieben",
+        "healTooltip": "Kopiert die Struktur der Quelle und passt sie an Helligkeit und Farbe der Umgebung an",
+        "hintActive": "Ziehe den Quellumriss, um festzulegen, woher die Pixel kommen. Jeder neue Strich wird zu einem eigenen Bereich. Halte Shift gedrückt, um diesen zu erweitern.",
+        "hintEmpty": "Male über einen Fleck, ein Kabel oder eine Störung. Eine passende Quelle wird automatisch gefunden.",
+        "mode": "Modus",
+        "newSource": "Andere Quelle suchen"
+      },
       "comingSoon": "Demnächst",
       "connection": {
         "backendLabel": "KI-Backend:",
@@ -483,6 +518,7 @@
       "createNewTitle": "Neue generative Bearbeitung erstellen",
       "createNewTooltip": "Neue {{name}}-Bearbeitung erstellen",
       "denoising": "KI-Entrauschen läuft...",
+      "upscaling": "RapidRes läuft...",
       "dropzoneText": "Hier ablegen, um eine neue Bearbeitung zu erstellen",
       "editSettingsTitle": "Bearbeitungseinstellungen",
       "editsTitle": "Bearbeitungen",
@@ -793,8 +829,7 @@
       "toggleAnalyticsTooltip": "Analyseanzeige umschalten",
       "tooltips": {
         "addToCurrent": "{{name}} zur aktuellen Maske hinzufügen oder neu erstellen (Rechtsklick)",
-        "createNew": "Neue {{name}}-Maske erstellen",
-        "selectNewSourcePoint": "{{modifier}} + Klicken, um einen neuen Quellpunkt auszuwählen"
+        "createNew": "Neue {{name}}-Maske erstellen"
       }
     },
     "metadata": {
@@ -937,6 +972,9 @@
   "export": {
     "advanced": {
       "exportMasks": "Masken als separate Dateien exportieren",
+      "exportOriginal": "Original zusätzlich exportieren",
+      "originalCrop": "Zuschnitt anwenden",
+      "originalKeepExposure": "Belichtung beibehalten",
       "preserveFolders": "Ordnerstruktur beibehalten",
       "preserveTimestamps": "Dateizeitstempel aus EXIF-Aufnahmedatum setzen",
       "title": "Exporteinstellungen"
@@ -1131,6 +1169,7 @@
       "failed": "Fehlgeschlagen ({{failedCount}})",
       "kinds": {
         "denoise": "KI-Entrauschen",
+        "upscale": "RapidRes-Hochskalierung",
         "depthMap": "Tiefe wird analysiert",
         "depthMask": "Tiefenmaske wird erstellt",
         "faceMask": "Gesichtsmaske wird erstellt",
@@ -1464,6 +1503,7 @@
       "linear": "Linear",
       "liquify": "Verflüssigen",
       "luminance": "Luminanz",
+      "matchBrush": "Abgleich-Pinsel",
       "others": "Andere",
       "quickErase": "Schnelles Löschen",
       "quickEraser": "Schnell-Radierer",
@@ -1528,6 +1568,7 @@
       "descReplace": "Überschreibt alle ausgewählten Einstellungen und setzt den Rest auf Standardwerte zurück.",
       "groups": {
         "aiDenoise": "KI-Entrauschen",
+        "aiUpscale": "RapidRes",
         "blackWhite": "Schwarzweiß",
         "chromaticAberration": "Chromatische Aberration",
         "clarityDehaze": "Klarheit & Dunst entfernen",
@@ -1542,6 +1583,7 @@
         "halationGlow": "Lichthof & Glühen",
         "hueShift": "Globaler Farbton-Shift",
         "lensBlur": "Objektivunschärfe",
+        "motionBlur": "Bewegungsunschärfe",
         "lensCorrection": "Objektivkorrektur",
         "lut": "LUT",
         "masks": "Masken",
@@ -1685,7 +1727,6 @@
       "selectManufacturer": "Hersteller auswählen",
       "title": "Objektivkorrektur",
       "vignetting": "Vignettierung",
-      "waitingAutoDetect": "Warten auf Auto-Erkennung...",
       "zoomInTooltip": "Vergrößern",
       "zoomOutTooltip": "Verkleinern"
     },
@@ -1785,7 +1826,7 @@
           "fine": "Umschalt für fein"
         },
         "keys": {
-          "hold": "Halten",
+          "hold": "Tippen / Halten",
           "previousImage": "Vorh. Bild",
           "nextImage": "Nächstes Bild",
           "reset": "Zurücksetzen",
@@ -1818,6 +1859,7 @@
       "limit": "Limit",
       "modals": {
         "aiDenoiseMessage": "Möchtest du den KI-Entrauschen-Cache wirklich leeren?\n\nBilder mit aktiviertem KI-Entrauschen müssen erneut entrauscht werden, was pro Bild mehrere Minuten dauern kann.",
+        "aiUpscaleMessage": "Möchtest du den RapidRes-Cache wirklich leeren?\n\nBilder mit aktiviertem RapidRes müssen erneut hochskaliert werden.",
         "aiMapsMessage": "Möchtest du die Tiefen- und Normal-Maps wirklich leeren?\n\nBilder mit Objektivunschärfe, Nebel oder Neubeleuchtung erstellen ihre Maps beim nächsten Öffnen neu.",
         "aiMessage": "Sind Sie sicher, dass Sie alle KI-generierten Tags von allen Bildern in allen aktiven Stammordnern entfernen möchten?\n\nBenutzerdefinierte Tags sind nicht betroffen. Diese Aktion kann nicht rückgängig gemacht werden.",
         "allMessage": "Sind Sie sicher, dass Sie alle KI-generierten und benutzerdefinierten Tags von allen Bildern in allen aktiven Stammordnern entfernen möchten?\n\nDiese Aktion kann nicht rückgängig gemacht werden.",
@@ -1845,6 +1887,7 @@
       "show": "Anzeigen",
       "statuses": {
         "aiDenoiseSuccess": "KI-Entrauschen-Cache erfolgreich geleert.",
+        "aiUpscaleSuccess": "RapidRes-Cache erfolgreich geleert.",
         "aiSuccess": "{{count}} Dateien aktualisiert. KI-Tags entfernt.",
         "aiSuccess_one": "{{count}} Datei aktualisiert. KI-Tags entfernt.",
         "aiSuccess_other": "{{count}} Dateien aktualisiert. KI-Tags entfernt.",
@@ -1861,6 +1904,8 @@
       "storage": {
         "aiDenoise": "KI-Entrauschen",
         "aiDenoiseDesc": "Zwischengespeicherte Entrauschungsergebnisse.",
+        "aiUpscale": "RapidRes",
+        "aiUpscaleDesc": "Zwischengespeicherte 2x-Hochskalierungen von RapidRes.",
         "aiMaps": "Tiefen- & Normal-Maps",
         "aiMapsDesc": "Werden von Objektivunschärfe, Nebel und Neubeleuchtung genutzt.",
         "immich": "Immich",
@@ -1909,6 +1954,11 @@
       "title": "Allgemeine Einstellungen",
       "toolFocusMode": "Werkzeug-Fokusmodus",
       "toolFocusModeDesc": "Klappt automatisch die anderen Werkzeuge eines Panels ein, wenn Sie eines aufklappen.",
+      "uiScale": "Oberflächenskalierung",
+      "uiScaleCompact": "Kompakt",
+      "uiScaleDefault": "Standard",
+      "uiScaleDesc": "Die Oberfläche unabhängig von der Anzeigeskalierung des Systems verkleinern oder vergrößern. Kompakte Größen passen besser auf kleine Laptop-Bildschirme.",
+      "uiScaleLarge": "Groß",
       "xmpSync": "XMP-Metadaten-Sync",
       "xmpSyncDesc": "Synchronisieren Sie Bewertungen, Farbmarkierungen und Tags in Standard-XMP-Filialdateien für Kompatibilität mit anderen Foto-Editoren."
     },
@@ -2178,15 +2228,14 @@
       "smallThumbnailRes": "Raster-Miniaturbild-Auflösung",
       "smallThumbnailResDesc": "Auflösung der Miniaturbilder, die im Bibliotheksraster angezeigt werden.",
       "staticDesc": "Der Editor rendert das Bild in einer festen Auflösung. Dieser Modus ist am schnellsten und am besten für schwächere Hardware geeignet.",
-      "staticPreviewRes": "Statische Vorschauauflösung",
-      "staticPreviewResDesc": "Legt die Auflösung für statische Vorschauen wie Zuschnitt und Perspektive fest. Beeinflusst nicht die Hauptvorschau.",
       "threads": "Threads",
       "thumbnailRes": "Miniaturbild-Auflösung",
       "thumbnailResDesc": "Bestimmt die Auflösung der generierten Bibliothek-Miniaturbilder. Höhere Werte erzeugen schärfere Bilder.",
       "title": "Verarbeitungs-Engine",
       "wgpu": "WGPU Direkt-Rendering",
       "wgpuDescAndroid": "Umgeht die Browser-Kodierung für sofort reagierende Live-Vorschauen. (Auf Android deaktiviert: Native WGPU-Erstellung wird neben dem mobilen Webview nicht unterstützt.)",
-      "wgpuDescLinux": "Umgeht die Browser-Kodierung für sofort reagierende Live-Vorschauen. (Auf Linux deaktiviert: Tauri nutzt GTK, was mit WGPU kollidiert.)",
+      "wgpuDescLinuxExperimental": "Experimentell unter Linux und möglicherweise instabil.",
+      "wgpuDescLinuxX11": "Unter X11 nicht verfügbar.",
       "wgpuDescRecommended": "Umgeht die Browser-Kodierung für sofort reagierende Live-Vorschauen. Sehr empfehlenswert für die Leistung.",
       "wgpuLabel": "Direktes WGPU-Rendern aktivieren",
       "workerThreads": "Miniaturbild-Worker-Threads",
@@ -2228,6 +2277,7 @@
         "mediapipe": "Für die schnellen Gesichtslandmarken- und Segmentierungsmodelle, die die KI-Gesichtsmasken ermöglichen.",
         "negpy": "Für die Inspiration hinter der Negativumwandlungslogik.",
         "nind": "Für die Bereitstellung von KI-Modellen für die Rauschreduzierung.",
+        "span": "Für das KI-Basismodell von RapidRes, der 2x-KI-Hochskalierung in RapidRAW, von RapidRAW auf die eigene RAW-Pipeline feinabgestimmt (von Philip Hofmann, CC BY 4.0).",
         "rawler": "Für die hervorragende Rust-Crate zur RAW-Bildverarbeitung.",
         "sam2": "Für das grundlegende Modell der KI-Motiverkennung.",
         "spektrafilm": "Für die spektralbasierten Filmemulations-LUTs von Andrea Volpato, die RapidRAWs integrierte Filmemulationen ermöglichen. Lizenziert unter CC BY-SA 4.0.",

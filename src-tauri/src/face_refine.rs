@@ -535,6 +535,7 @@ pub async fn generate_face_refine_patch(
         100,
         false,
     )
+    .map(|v| v.to_string())
 }
 
 #[cfg(test)]
