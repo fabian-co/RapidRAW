@@ -193,8 +193,7 @@
       "facialRefineHint": "Detect the faces in this photo to retouch each one with its own settings.",
       "facialRefineNoFaces": "No faces were found in this photo.",
       "facialRefineParams": {
-        "blemish": "Blemish Removal (Forehead & Cheeks)",
-        "evenTone": "Even Skin Tone",
+        "blemish": "Blemish Removal",
         "eyes": "Eye Enhancement",
         "intensity": "Skin Smoothing",
         "shine": "Shine & Sweat Reduction",
@@ -558,7 +557,6 @@
       "noImageSelected": "No image selected.",
       "params": {
         "blemish": "Blemish Removal",
-        "evenTone": "Even Skin Tone",
         "feather": "Feather",
         "grow": "Grow",
         "intensity": "Intensity",

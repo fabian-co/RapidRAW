@@ -61,14 +61,12 @@ mod effect {
     pub const TEXTURE: usize = 1;
     pub const BLEMISH: usize = 2;
     pub const SHINE: usize = 3;
-    pub const EVEN_TONE: usize = 4;
-    pub const EYES: usize = 5;
-    pub const TEETH: usize = 6;
+    pub const EYES: usize = 4;
+    pub const TEETH: usize = 5;
     /// The skin effects that blemish removal changes, and where their blemish free
     /// versions are stored.
-    pub const ON_CLEAN_SKIN: [(usize, usize); 4] =
-        [(SMOOTHING, 7), (TEXTURE, 8), (SHINE, 9), (EVEN_TONE, 10)];
-    pub const COUNT: usize = 11;
+    pub const ON_CLEAN_SKIN: [(usize, usize); 3] = [(SMOOTHING, 6), (TEXTURE, 7), (SHINE, 8)];
+    pub const COUNT: usize = 9;
 }
 
 fn difference(original: &[u8], result: &[u8]) -> Vec<i8> {
@@ -94,15 +92,13 @@ fn compute_layers(crop: &FaceCrop) -> EffectLayers {
             texture: 1.0,
             blemish: 0.0,
             shine: 0.0,
-            even_tone: 0.0,
             skin_protection: 0.85,
         };
         match index {
             effect::SMOOTHING => params.smoothing = 1.0,
             effect::TEXTURE => params.texture = 0.0,
             effect::BLEMISH => params.blemish = 1.0,
-            effect::SHINE => params.shine = 1.0,
-            _ => params.even_tone = 1.0,
+            _ => params.shine = 1.0,
         }
         retouch_skin_scaled(base, &crop.selection, w, h, scale, &params, Some(hints))
     };
@@ -131,7 +127,7 @@ fn compute_layers(crop: &FaceCrop) -> EffectLayers {
             effect::BLEMISH => difference(&crop.rgb, &clean),
             effect::EYES => feature_effect(1.0, 0.0),
             effect::TEETH => feature_effect(0.0, 1.0),
-            effect::SMOOTHING | effect::TEXTURE | effect::SHINE | effect::EVEN_TONE => {
+            effect::SMOOTHING | effect::TEXTURE | effect::SHINE => {
                 difference(&crop.rgb, &skin_effect(&crop.rgb, index))
             }
             _ => {
@@ -168,14 +164,13 @@ pub struct FaceRefineSettings {
 
 impl FaceRefineSettings {
     /// How strongly each effect layer applies, `0.0..=1.0`.
-    fn amounts(&self) -> [f32; 7] {
+    fn amounts(&self) -> [f32; 6] {
         let skin = &self.skin;
         [
             skin.smoothing,
             1.0 - skin.texture,
             skin.blemish,
             skin.shine,
-            skin.even_tone,
             self.eyes,
             self.teeth,
         ]
@@ -493,7 +488,6 @@ pub async fn generate_face_refine_patch(
             texture: 1.0 - percent("textureSmoothing", 0.0),
             blemish: percent("blemish", 0.0),
             shine: percent("shine", 0.0),
-            even_tone: percent("evenTone", 0.0),
             skin_protection: 0.85,
         },
         eyes: percent("eyes", 0.0),
@@ -554,7 +548,6 @@ mod tests {
                 texture,
                 blemish: 0.0,
                 shine: 0.0,
-                even_tone: 0.0,
                 skin_protection: 0.85,
             },
             eyes,
@@ -697,7 +690,6 @@ mod tests {
                 texture: 0.75,
                 blemish: 1.0,
                 shine: 0.4,
-                even_tone: 0.35,
                 skin_protection: 0.85,
             },
             eyes: 0.6,
@@ -749,7 +741,6 @@ mod tests {
                     texture: 1.0,
                     blemish: 0.0,
                     shine: 0.0,
-                    even_tone: 0.0,
                     skin_protection: 0.85,
                 },
                 eyes: 0.0,
@@ -778,7 +769,6 @@ mod tests {
                     texture: 1.0,
                     blemish: 1.0,
                     shine: 0.0,
-                    even_tone: 0.0,
                     skin_protection: 0.85,
                 },
                 eyes: 0.0,

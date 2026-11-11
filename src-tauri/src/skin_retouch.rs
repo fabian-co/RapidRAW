@@ -11,8 +11,6 @@ pub struct SkinRetouchParams {
     pub blemish: f32,
     /// Reduction of specular shine and sweat sparkles.
     pub shine: f32,
-    /// Evens out color blotches and redness.
-    pub even_tone: f32,
     /// How strongly non-skin pixels (eyes, lips, brows, hair) are left untouched.
     pub skin_protection: f32,
 }
@@ -286,8 +284,7 @@ impl SkinModel {
 /// What a spot search pass looks for.
 #[derive(Clone, Copy, PartialEq)]
 enum SpotKind {
-    /// Large inflamed pimples: redder than the skin around them. Darkness alone is not
-    /// enough at this size, where it is far more often a fold, a shadow or a mole.
+    /// Inflamed pimples and red marks of any size: redder than the skin around them.
     RedSpot,
     /// Pimples, red marks and dark spots: darker and/or redder than the skin around them.
     Blemish,
@@ -334,7 +331,7 @@ fn heal_blemishes(
     h: usize,
     scale: f32,
     amount: f32,
-    zone: Option<&[u8]>,
+    hints: Option<FaceHints>,
     sizes: SpotSizes,
 ) {
     let n = w * h;
@@ -358,6 +355,7 @@ fn heal_blemishes(
     let passes = [
         ((scale / 45.0).clamp(3.0, 40.0), SpotKind::RedSpot),
         (sigma_mid, SpotKind::Blemish),
+        ((scale / 140.0).clamp(1.5, 14.0), SpotKind::RedSpot),
         ((scale / 220.0).clamp(0.8, 8.0), SpotKind::Blackhead),
     ];
     let wanted = |kind: SpotKind| match sizes {
@@ -368,11 +366,31 @@ fn heal_blemishes(
     // A pimple can be too red to pass for skin itself, so wherever it is surrounded by
     // skin it may still be searched.
     let around = gauss_blur(skin, w, h, sigma_mid * 1.5);
-    let spot_skin: Vec<f32> = skin
+    let mut spot_skin: Vec<f32> = skin
         .par_iter()
         .zip(around.par_iter())
         .map(|(&s, &a)| s.max(smoothstep(0.3, 0.7, a)))
         .collect();
+    if let Some(hints) = hints {
+        // Brows, lashes, lips and strands of hair are dark or red patches surrounded by
+        // skin as well, so nothing is searched on them or right next to them.
+        let features: Vec<f32> = hints
+            .features
+            .par_iter()
+            .map(|&f| f as f32 / 255.0)
+            .collect();
+        let near_features = gauss_blur(&features, w, h, sigma_mid * 0.5);
+        spot_skin
+            .par_iter_mut()
+            .zip(near_features.par_iter())
+            .enumerate()
+            .for_each(|(i, (s, &f))| {
+                let in_zone = hints
+                    .blemish_zone
+                    .map_or(1.0, |zone| smoothstep(0.2, 0.5, zone[i] as f32 / 255.0));
+                *s *= in_zone * (1.0 - smoothstep(0.1, 0.4, f));
+            });
+    }
 
     let source = [y.to_vec(), cb.to_vec(), cr.to_vec()];
     let mut healed = vec![0.0_f32; n];
@@ -391,7 +409,6 @@ fn heal_blemishes(
             sigma_b,
             kind,
             amount,
-            zone,
         );
         if let Some(cover) = cover {
             healed
@@ -406,8 +423,12 @@ fn heal_blemishes(
         .for_each(|(s, &h)| *s = s.max(h));
 }
 
+/// Histogram of how far skin pixels are from their surroundings, for `heal_spots`.
+const DEVIATION_BINS: usize = 2048;
+const DEVIATION_RANGE: f32 = 0.25;
+
 /// One spot search and repair pass at spot size `sigma_b`; see `heal_blemishes`. Spots
-/// are searched for on `source`, the original Y, Cb and Cr planes, wherever `spot_skin`
+/// are searched for on `source`, the original Y, Cb and Cr planes, as far as `spot_skin`
 /// allows. Returns how much of each pixel was healed, if anything was.
 #[allow(clippy::too_many_arguments)]
 fn heal_spots(
@@ -424,7 +445,6 @@ fn heal_spots(
     sigma_b: f32,
     kind: SpotKind,
     amount: f32,
-    zone: Option<&[u8]>,
 ) -> Option<Vec<f32>> {
     let n = w * h;
     let skin_weight: Vec<f32> = skin.par_iter().map(|&v| v + 0.02).collect();
@@ -442,12 +462,20 @@ fn heal_spots(
         (Vec::new(), Vec::new())
     };
 
-    let (mut dev_y, mut dev_c, mut count) = (0.0_f64, 0.0_f64, 0usize);
+    // How much clean skin varies at this size. Taken from the median, so that a face full
+    // of spots does not raise the bar its own spots have to clear.
+    let mut hist_y = vec![0u32; DEVIATION_BINS];
+    let mut hist_c = vec![0u32; DEVIATION_BINS];
+    let mut count = 0u32;
+    let bin = |deviation: f32| {
+        ((deviation.abs() / DEVIATION_RANGE * DEVIATION_BINS as f32) as usize)
+            .min(DEVIATION_BINS - 1)
+    };
     for i in 0..n {
         if mask[i] > 76 && skin[i] > 0.5 {
-            dev_y += (fine_y[i] - bg_y[i]).abs() as f64;
+            hist_y[bin(fine_y[i] - bg_y[i])] += 1;
             if uses_redness {
-                dev_c += (fine_red[i] - bg_red[i]).abs() as f64;
+                hist_c[bin(fine_red[i] - bg_red[i])] += 1;
             }
             count += 1;
         }
@@ -455,15 +483,17 @@ fn heal_spots(
     if count < 64 {
         return None;
     }
-    let sig_y = ((1.2533 * dev_y / count as f64) as f32).max(0.006);
-    let sig_c = ((1.2533 * dev_c / count as f64) as f32).max(0.004);
+    let sigma_of = |hist: &[u32]| 1.4826 * percentile(hist, count, 0.5) * DEVIATION_RANGE;
+    let sig_y = sigma_of(&hist_y).max(0.006);
+    let sig_c = sigma_of(&hist_c).max(0.004);
 
+    let red_at = |i: usize| (fine_red[i] - bg_red[i]) / sig_c * (1.0 - shadow_guard[i]);
     let score: Vec<f32> = (0..n)
         .into_par_iter()
         .map(|i| {
             let dark = (bg_y[i] - fine_y[i]) / sig_y;
             let spot = match kind {
-                SpotKind::RedSpot => (fine_red[i] - bg_red[i]) / sig_c,
+                SpotKind::RedSpot => return red_at(i),
                 SpotKind::Blemish => dark.max((fine_red[i] - bg_red[i]) / sig_c),
                 // A blackhead is also clearly darker in absolute terms, not just compared
                 // with how much the skin around it varies.
@@ -493,10 +523,18 @@ fn heal_spots(
     // A spot is round both up close and from further away. Folds, wrinkles, lash lines
     // and lip edges can look like a string of spots up close, but from further away they
     // are lines, and lines are never touched.
+    //
+    // That only holds for what is dark. Shadows and folds are never redder than the skin
+    // around them, so a red spot only has to be a bump up close: pimples that sit close
+    // together merge into a streak from further away and would be taken for a line.
     let near = gauss_blur(&score, w, h, sigma_b * 0.6);
     let near_step = ((sigma_b * 0.6).round() as usize).max(1);
-    let far = gauss_blur(&score, w, h, sigma_b * 1.6);
+    let far = (kind != SpotKind::RedSpot).then(|| gauss_blur(&score, w, h, sigma_b * 1.6));
     let far_step = ((sigma_b * 1.6).round() as usize).max(1);
+    let near_red = (kind == SpotKind::Blemish).then(|| {
+        let red: Vec<f32> = (0..n).into_par_iter().map(red_at).collect();
+        gauss_blur(&red, w, h, sigma_b * 0.6)
+    });
     // Blackheads are so small that a crease is still several of them wide, so they are
     // also checked from much further away, where a crease is clearly a line.
     let wide = (kind == SpotKind::Blackhead).then(|| gauss_blur(&score, w, h, sigma_b * 4.0));
@@ -516,23 +554,39 @@ fn heal_spots(
                 if mask[i] == 0 {
                     continue;
                 }
-                let in_zone = zone.map_or(1.0, |zone| zone[i] as f32 / 255.0);
-                let strength =
-                    smoothstep(threshold, threshold + 1.0, score[i]) * spot_skin[i] * in_zone;
+                let allowed = spot_skin[i];
+                if allowed <= 0.0 {
+                    continue;
+                }
+                let strength_of = |score: f32| smoothstep(threshold, threshold + 1.0, score);
+                let red_bump = |red: &[f32]| {
+                    roundness_of(red, near_step, px, py)
+                        .map_or(0.0, |roundness| smoothstep(0.1, 0.3, roundness))
+                };
+                let strength = strength_of(score[i]);
                 if strength <= 0.0 {
                     continue;
                 }
-                let Some(mut roundness) = roundness_of(&near, near_step, px, py)
-                    .zip(roundness_of(&far, far_step, px, py))
-                    .map(|(near, far)| near.min(far))
-                else {
+                let Some(far) = &far else {
+                    *out = allowed * strength * red_bump(&near);
                     continue;
                 };
-                if let Some(wide) = &wide {
-                    // Away from anything else a blackhead fades out, which is not a line.
-                    roundness = roundness.min(roundness_of(wide, wide_step, px, py).unwrap_or(1.0));
+                let mut spot = 0.0_f32;
+                if let Some(near_red) = &near_red {
+                    spot = strength_of(red_at(i)) * red_bump(near_red);
                 }
-                *out = strength * smoothstep(0.3, 0.6, roundness);
+                if let Some(mut roundness) = roundness_of(&near, near_step, px, py)
+                    .zip(roundness_of(far, far_step, px, py))
+                    .map(|(near, far)| near.min(far))
+                {
+                    if let Some(wide) = &wide {
+                        // Away from anything else a blackhead fades out, which is not a line.
+                        roundness =
+                            roundness.min(roundness_of(wide, wide_step, px, py).unwrap_or(1.0));
+                    }
+                    spot = spot.max(strength * smoothstep(0.3, 0.6, roundness));
+                }
+                *out = allowed * spot;
             }
         });
     if !spots.par_iter().any(|&s| s > 0.0) {
@@ -715,7 +769,7 @@ fn heal_blackheads_full_size(
         h,
         scale,
         params.blemish,
-        hints.and_then(|hints| hints.blemish_zone),
+        hints,
         SpotSizes::Blackheads,
     );
 
@@ -788,7 +842,7 @@ fn retouch_skin_with(
             h,
             scale,
             params.blemish,
-            hints.and_then(|hints| hints.blemish_zone),
+            hints,
             spot_sizes,
         );
     }
@@ -812,26 +866,6 @@ fn retouch_skin_with(
         .zip(low_smooth.par_iter())
         .map(|(&l, &s)| l + params.smoothing * (s - l))
         .collect();
-
-    if params.even_tone > 0.001 {
-        // Blotches and redness are color that differs from the skin around it, so each
-        // pixel's color is drawn towards the color of the surrounding skin. Excess red is
-        // drawn in fully; the rest a little less, so the face keeps some natural variation.
-        let t = params.even_tone;
-        let tone_eps = 0.03_f32 * 0.03;
-        for (plane, is_red) in [(&mut cb, false), (&mut cr, true)] {
-            let local = guided.filter(plane, tone_eps);
-            let broad = weighted_blur(plane, &skin_weight, w, h, radius as f32 * 1.5);
-            plane
-                .par_iter_mut()
-                .zip(local.par_iter())
-                .zip(broad.par_iter())
-                .for_each(|((v, &l), &b)| {
-                    let pull = if is_red && l > b { 1.0 } else { 0.8 };
-                    *v += t * (l - *v) + t * pull * (b - l);
-                });
-        }
-    }
 
     if params.shine > 0.001 {
         let mut hist = [0u32; 1024];
@@ -1162,7 +1196,6 @@ mod tests {
             texture: 0.75,
             blemish: 0.6,
             shine: 0.5,
-            even_tone: 0.4,
             skin_protection: 0.85,
         }
     }
@@ -1363,7 +1396,6 @@ mod tests {
             texture: 1.0,
             blemish: 1.0,
             shine: 0.0,
-            even_tone: 0.0,
             skin_protection: 0.85,
         };
 
@@ -1396,7 +1428,6 @@ mod tests {
             texture: 1.0,
             blemish: 1.0,
             shine: 0.0,
-            even_tone: 0.0,
             skin_protection: 0.85,
         };
 
@@ -1422,7 +1453,6 @@ mod tests {
             texture: 1.0,
             blemish: 1.0,
             shine: 0.0,
-            even_tone: 0.0,
             skin_protection: 0.85,
         }
     }
@@ -1473,6 +1503,41 @@ mod tests {
             after < before * 0.4,
             "redness went from {before} to {after}"
         );
+    }
+
+    /// On a face covered in acne the pimples must not hide each other: neither by raising
+    /// what counts as normal skin variation, nor by merging into what looks like a line.
+    #[test]
+    fn removes_every_pimple_on_a_face_full_of_them() {
+        let mut rgb = skin_image();
+        let mut pimples = Vec::new();
+        for row in 0..5 {
+            for col in 0..5 {
+                pimples.push((40 + col * 40 + (row % 2) * 9, 40 + row * 40));
+            }
+        }
+        // Three in a row, almost touching.
+        pimples.extend([(100, 222), (113, 224), (126, 222)]);
+        for &(x, y) in &pimples {
+            paint_disc(&mut rgb, x, y, 4, [222, 138, 124]);
+        }
+        let mask = vec![255u8; SIZE * SIZE];
+
+        let out = retouch_skin(&rgb, &mask, SIZE, SIZE, 480.0, &only_blemish(), None);
+
+        let redness = |buf: &[u8], x: usize, y: usize| {
+            let i = (y * SIZE + x) * 3;
+            buf[i] as f32 - buf[i + 1] as f32
+        };
+        let surround = redness(&skin_image(), 60, 60);
+        for &(x, y) in &pimples {
+            let before = redness(&rgb, x, y) - surround;
+            let after = redness(&out, x, y) - surround;
+            assert!(
+                after < before * 0.4,
+                "pimple at {x},{y} went from {before} to {after}"
+            );
+        }
     }
 
     #[test]

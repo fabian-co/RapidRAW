@@ -193,8 +193,7 @@
       "facialRefineHint": "Detecta las caras de esta foto para retocar cada una con sus propios ajustes.",
       "facialRefineNoFaces": "No se encontraron caras en esta foto.",
       "facialRefineParams": {
-        "blemish": "Eliminar imperfecciones (frente y pómulos)",
-        "evenTone": "Unificar tono de piel",
+        "blemish": "Eliminar imperfecciones",
         "eyes": "Realzar ojos",
         "intensity": "Suavizar piel",
         "shine": "Reducir brillos y sudor",
@@ -576,7 +575,6 @@
       "noImageSelected": "No hay imagen seleccionada.",
       "params": {
         "blemish": "Eliminar imperfecciones",
-        "evenTone": "Unificar tono de piel",
         "feather": "Desvanecimiento",
         "grow": "Expandir",
         "intensity": "Intensidad",

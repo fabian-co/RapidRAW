@@ -120,9 +120,9 @@ pub enum FaceRegion {
     Teeth,
     /// Everything on a head that is not skin. Used to protect features while retouching.
     Features,
-    /// Forehead, cheeks, the bridge and tip of the nose and the chin: the skin where spots
-    /// are removed. The nostrils and the wings of the nose, the nasolabial folds, the area
-    /// around the mouth, the ears and the neck are left out.
+    /// The skin of the face where spots are removed. The surroundings of the eyes, the
+    /// nostrils and the wings of the nose, the nasolabial folds, the area around the
+    /// mouth, the ears and the neck are left out.
     BlemishZone,
 }
 
@@ -228,8 +228,9 @@ impl ParsedFace {
         [(a + 1.0) * half_size, (b + 1.0) * half_size]
     }
 
-    /// How much the crop position (`u`, `v`) belongs to the forehead, the cheeks, the
-    /// bridge and tip of the nose or the chin.
+    /// How much spots may be removed at the crop position (`u`, `v`): anywhere on the
+    /// face except around the eyes, on the wings of the nose and the nostrils, along the
+    /// nasolabial folds and around the mouth, where a dark or red patch is anatomy.
     fn blemish_zone_weight(&self, u: f32, v: f32) -> f32 {
         let [right_eye, left_eye, nose, right_mouth, left_mouth] = self.landmarks;
         let eye_y = (right_eye[1] + left_eye[1]) * 0.5;
@@ -240,25 +241,37 @@ impl ParsedFace {
             .max((mouth_y - eye_y) * 0.8)
             .max(8.0);
 
-        let forehead = 1.0 - smoothstep(eye_y - 0.45 * unit, eye_y - 0.30 * unit, v);
-        let cheek_top = eye_y + 0.20 * unit;
-        let below_eyes = smoothstep(cheek_top, eye_y + 0.35 * unit, v);
-        let above_mouth = 1.0 - smoothstep(mouth_y - 0.15 * unit, mouth_y, v);
+        // Eyelids, lash lines, eye corners and the bags under the eyes.
+        let eye_socket = |eye: [f32; 2]| {
+            let distance = ((u - eye[0]) / (0.34 * unit)).hypot((v - eye[1]) / (0.22 * unit));
+            1.0 - smoothstep(1.0, 1.15, distance)
+        };
+        let eyes = eye_socket(right_eye).max(eye_socket(left_eye));
 
-        // The cheek starts outside the nasolabial fold, which runs from the wing of the
-        // nose down to just outside the corner of the mouth.
+        // The nasolabial fold runs from the wing of the nose down to just outside the
+        // corner of the mouth. Everything between the two folds is left out: the wings of
+        // the nose, the nostrils, the upper lip, the mouth and the shadow under it.
         let mouth_corner = if u < nose[0] { right_mouth } else { left_mouth };
-        let at_nose = 0.50 * unit;
-        let at_mouth = (mouth_corner[0] - nose[0]).abs() + 0.22 * unit;
+        let wing_top = nose[1] - 0.30 * unit;
+        let at_wing_top = 0.30 * unit;
+        let at_nose = 0.38 * unit;
+        let at_mouth = (mouth_corner[0] - nose[0]).abs() + 0.10 * unit;
+        let lip_shadow_end = mouth_y + 0.30 * unit;
         let fold = if v <= nose[1] {
-            let t = ((v - cheek_top) / (nose[1] - cheek_top).max(1.0)).clamp(0.0, 1.0);
-            0.30 * unit + t * (at_nose - 0.30 * unit)
-        } else {
+            let t = ((v - wing_top) / (nose[1] - wing_top)).clamp(0.0, 1.0);
+            at_wing_top + t * (at_nose - at_wing_top)
+        } else if v <= mouth_y {
             let t = ((v - nose[1]) / (mouth_y - nose[1]).max(1.0)).clamp(0.0, 1.0);
             at_nose + t * (at_mouth - at_nose)
+        } else {
+            // Below the corners of the mouth only the shadow of the lower lip is left.
+            let t = ((v - mouth_y) / (lip_shadow_end - mouth_y)).clamp(0.0, 1.0);
+            at_mouth - t * 0.10 * unit
         };
-        let outside_fold = smoothstep(fold, fold + 0.12 * unit, (u - nose[0]).abs());
-        let cheeks = below_eyes * above_mouth * outside_fold;
+        let fold_rows = smoothstep(wing_top - 0.10 * unit, wing_top, v)
+            * (1.0 - smoothstep(lip_shadow_end, lip_shadow_end + 0.15 * unit, v));
+        let between_folds =
+            (1.0 - smoothstep(fold, fold + 0.08 * unit, (u - nose[0]).abs())) * fold_rows;
 
         // The bridge of the nose down to its tip, narrow enough to stay off the wings.
         // The nostrils are below the tip, so the band ends there.
@@ -278,7 +291,9 @@ impl ParsedFace {
                     (u - mouth_x).abs(),
                 ));
 
-        forehead.max(cheeks).max(nose_band).max(chin)
+        ((1.0 - eyes) * (1.0 - between_folds))
+            .max(nose_band)
+            .max(chin)
     }
 
     /// Image-space position that identifies this face.
@@ -799,7 +814,9 @@ mod tests {
         assert!(weight(445.0, 650.0) < 0.01, "wing of the nose");
         assert!(weight(512.0, 860.0) > 0.99, "chin");
         assert!(weight(512.0, 770.0) < 0.01, "lower lip shadow");
-        assert!(weight(360.0, 800.0) < 0.01, "below the right mouth corner");
+        assert!(weight(430.0, 790.0) < 0.01, "below the right mouth corner");
+        assert!(weight(360.0, 800.0) > 0.99, "right side of the jaw");
+        assert!(weight(520.0, 470.0) > 0.99, "between the brows");
         assert!(weight(400.0, 500.0) < 0.01, "eye");
     }
 

@@ -117,7 +117,6 @@ const SUB_MASK_CONFIG: any = {
       { key: 'texture', min: 0, max: 100, step: 1, defaultValue: 75 },
       { key: 'blemish', min: 0, max: 100, step: 1, defaultValue: 50 },
       { key: 'shine', min: 0, max: 100, step: 1, defaultValue: 40 },
-      { key: 'evenTone', min: 0, max: 100, step: 1, defaultValue: 35 },
       { key: 'skinProtection', min: 0, max: 100, step: 1, defaultValue: 85 },
     ],
   },

@@ -31,7 +31,6 @@ const FACE_SLIDERS = [
   { key: 'intensity', defaultValue: 0 },
   { key: 'blemish', defaultValue: 0 },
   { key: 'shine', defaultValue: 0 },
-  { key: 'evenTone', defaultValue: 0 },
   { key: 'textureSmoothing', defaultValue: 0 },
   { key: 'eyes', defaultValue: 0 },
   { key: 'teeth', defaultValue: 0 },

@@ -918,7 +918,6 @@ pub async fn generate_retouch_patch(
         texture: percent("texture", 0.75),
         blemish: percent("blemish", 0.5),
         shine: percent("shine", 0.4),
-        even_tone: percent("evenTone", 0.35),
         skin_protection: percent("skinProtection", 0.85),
     };
     let max_radius = retouch
